@@ -21,7 +21,7 @@ from bot.helper.mirror_leech_utils.download_utils.direct_link_generator import (
     direct_link_generator,
 )
 from bot.helper.ext_utils.exceptions import DirectDownloadLinkException, TgLinkException
-from bot.helper.ext_utils.links_utils import get_tg_link_message
+from bot.helper.ext_utils.links_utils import get_tg_link_message, parse_tg_message_link
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.ext_utils.help_messages import MIRROR_HELP_DICT
 from bot.helper.ext_utils.menu_utils import Menus
@@ -85,21 +85,27 @@ async def handle_jd_leech(client, message):
     await mirror_leech(client, message, isLeech=True, sameDir=None, isJD=True)
 
 
-async def mirror_leech(client, message, isLeech=False, sameDir=None, isJD=False):
+async def mirror_leech(
+    client, message, isLeech=False, sameDir=None, isJD=False, *, source_link=None
+):
     user_id = message.from_user.id or message.sender_chat.id
     message_id = message.id
 
     if not isLeech:
-        if not await is_rclone_config(user_id, message, show_prompt=True):
+        if not await is_rclone_config(user_id, message, show_prompt=source_link is None):
             return
-        if not await is_remote_selected(user_id, message, open_selector=True):
+        if not await is_remote_selected(user_id, message, open_selector=source_link is None):
             return
 
-    message_list = message.text.split("\n")
-    message_args = message_list[0].split()
+    if source_link is None:
+        message_args = message.text.split("\n", 1)[0].split()
+        command_args = message_args[1:]
+    else:
+        message_args = []
+        command_args = [source_link]
 
     try:
-        args = parser.parse_args(message_args[1:])
+        args = parser.parse_args(command_args)
     except Exception:
         await sendMessage(MIRROR_HELP_DICT["Cmd"], message, MIRROR_HELP_DICT["Menu"])
         return
@@ -196,7 +202,8 @@ async def mirror_leech(client, message, isLeech=False, sameDir=None, isJD=False)
     tg_link_resolved = False
 
     # Check for reply-to-message with a file
-    if reply_message := message.reply_to_message:
+    reply_message = message.reply_to_message if source_link is None else None
+    if reply_message:
         file = (
             reply_message.document
             or reply_message.video
@@ -209,7 +216,7 @@ async def mirror_leech(client, message, isLeech=False, sameDir=None, isJD=False)
             or None
         )
         if file is None:
-            reply_text = reply_message.text.split("\n", 1)[0].strip()
+            reply_text = (reply_message.text or "").split("\n", 1)[0].strip()
             if is_url(reply_text) or is_magnet(reply_text):
                 link = reply_text
         elif reply_message.document and (
@@ -220,7 +227,7 @@ async def mirror_leech(client, message, isLeech=False, sameDir=None, isJD=False)
             file = None
 
     # Resolve telegram links via userbot auto-detection
-    if is_telegram_link(link):
+    if source_link is not None or is_telegram_link(link):
         try:
             msg, tg_client = await get_tg_link_message(link)
         except TgLinkException as e:
@@ -430,6 +437,11 @@ async def mirror_select(client, callback_query):
 
 
 async def handle_auto_mirror(client, message):
+    if message.text:
+        if parse_tg_message_link(message.text) is not None:
+            await mirror_leech(client, message, source_link=message.text.strip())
+        return
+
     user_id = message.from_user.id
 
     if not await is_rclone_config(user_id, message):
@@ -453,12 +465,19 @@ async def handle_auto_mirror(client, message):
     else:
         tag = message.from_user.mention
     if file is not None:
-        if file.mime_type != "application/x-bittorrent":
+        if getattr(file, "mime_type", None) != "application/x-bittorrent":
             listener = TaskListener(message, tag, user_id)
             tgdown = TelegramDownloader(
                 file, client, listener, f"{DOWNLOAD_DIR}{listener.uid}/"
             )
             await conditional_queue_add(message, tgdown.download)
+
+
+async def auto_mirror_link_filter(_, client, message):
+    return (
+        message.from_user is not None
+        and parse_tg_message_link(message.text) is not None
+    )
 
 
 parser = ArgumentParser(description="rcmltb args usage:", argument_default="")
@@ -493,7 +512,13 @@ if config_dict["AUTO_MIRROR"]:
     bot.add_handler(
         MessageHandler(
             handle_auto_mirror,
-            filters=(filters.video | filters.document | filters.audio | filters.photo)
+            filters=(
+                filters.video | filters.document | filters.audio | filters.photo
+                | (
+                    filters.text & filters.incoming & ~filters.bot
+                    & filters.create(auto_mirror_link_filter)
+                )
+            )
             & (CustomFilters.user_filter | CustomFilters.chat_filter),
         )
     )
