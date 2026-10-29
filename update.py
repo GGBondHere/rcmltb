@@ -10,7 +10,7 @@ from os import path as ospath, environ
 from subprocess import run as srun
 from pymongo import MongoClient
 from dotenv import load_dotenv, dotenv_values
-from subprocess import run as srun
+from local_storage import DATABASE_PATH, LocalStorage
 
 if ospath.exists("botlog.txt"):
     with open("botlog.txt", "r+") as f:
@@ -22,7 +22,10 @@ basicConfig(
     level=INFO,
 )
 
-load_dotenv("config.env", override=True)
+load_dotenv(
+    "config.env",
+    override=bool(environ.get("DATABASE_URL") or dotenv_values("config.env").get("DATABASE_URL")),
+)
 
 BOT_TOKEN = environ.get("BOT_TOKEN", "")
 if len(BOT_TOKEN) == 0:
@@ -53,6 +56,18 @@ if DATABASE_URL is not None:
         conn.close()
     except Exception as e:
         log_error(f"Database ERROR: {e}")
+
+elif DATABASE_PATH.exists():
+    store = LocalStorage(bot_id)
+    try:
+        current = {
+            "UPSTREAM_REPO": environ.get("UPSTREAM_REPO", "").strip(),
+            "UPSTREAM_BRANCH": environ.get("UPSTREAM_BRANCH", "").strip() or "master",
+        }
+        for key, value in store.config_overrides(current).items():
+            environ[key] = str(value)
+    finally:
+        store.close()
 
 UPSTREAM_REPO = environ.get("UPSTREAM_REPO", "")
 if len(UPSTREAM_REPO) == 0:

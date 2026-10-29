@@ -21,6 +21,10 @@ from bot.helper.ext_utils.db_handler import database
 async def load_settings():
     global aria2_options, qbit_options
 
+    if database.is_local:
+        await database.load_settings()
+        return
+
     from bot import bot_id
 
     DATABASE_URL = Config.DATABASE_URL or ""
@@ -141,6 +145,10 @@ async def load_configurations():
 
 async def save_settings():
     from bot import bot_id, DATABASE_URL
+
+    if database.is_local:
+        await database.save_settings()
+        return
 
     if not DATABASE_URL:
         return

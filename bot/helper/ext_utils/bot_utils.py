@@ -529,6 +529,10 @@ def command_process(cmd):
 
 
 def update_user_ldata(id_, key, value):
+    from bot import local_storage
+
+    if local_storage:
+        local_storage.patch("users", id_, {key: value})
     user_data.setdefault(id_, {})
     user_data[id_][key] = value
 

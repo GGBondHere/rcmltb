@@ -227,8 +227,9 @@ class Config:
             if value is None:
                 continue
             processed = cls._process_config_value(key, value)
-            if processed is not None:
-                setattr(cls, key, processed)
+            if processed is None:
+                processed = cls._convert(key, value)
+            setattr(cls, key, processed)
 
     @classmethod
     def _load_from_module(cls):

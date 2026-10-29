@@ -5,7 +5,6 @@ from PIL import Image
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from pyrogram import filters
 from bot import (
-    DATABASE_URL,
     IS_PREMIUM_USER,
     TG_MAX_SPLIT_SIZE,
     bot,
@@ -154,7 +153,7 @@ async def set_yt_options(_, message, query):
     update_user_ldata(user_id, "yt_opt", value)
     await message.delete()
     await update_user_settings(query)
-    if DATABASE_URL:
+    if database.enabled:
         await database.update_user_data(user_id)
 
 
@@ -164,7 +163,7 @@ async def set_name_substitute(_, message, query):
     update_user_ldata(user_id, "name_sub", value)
     await message.delete()
     await update_user_settings(query)
-    if DATABASE_URL:
+    if database.enabled:
         await database.update_user_data(user_id)
 
 
@@ -174,7 +173,7 @@ async def leech_split_size(_, message, query):
     update_user_ldata(user_id, "split_size", value)
     await message.delete()
     await update_user_settings(query)
-    if DATABASE_URL:
+    if database.enabled:
         await database.update_user_data(user_id)
 
 
@@ -192,7 +191,7 @@ async def edit_user_settings(client, query):
         update_user_ldata(user_id, "as_doc", not user_dict.get("as_doc", False))
         await query.answer()
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "vthumb":
         await query.answer()
@@ -204,7 +203,7 @@ async def edit_user_settings(client, query):
             osremove(thumb_path)
             update_user_ldata(user_id, "thumb", "")
             await update_user_settings(query)
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_thumb(user_id)
         else:
             await query.answer(text="Old Settings", show_alert=True)
@@ -236,7 +235,7 @@ async def edit_user_settings(client, query):
                     osremove(photo_dir)
                     update_user_ldata(user_id, "thumb", des_dir)
                     await update_user_settings(query)
-                    if DATABASE_URL:
+                    if database.enabled:
                         await database.update_thumb(user_id, des_dir)
                 except Exception as ex:
                     await editMessage(str(ex), question)
@@ -269,7 +268,7 @@ Check all yt-dlp api options from this <a href='https://github.com/yt-dlp/yt-dlp
         await query.answer()
         update_user_ldata(user_id, "yt_opt", "")
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "ns":
         await query.answer()
@@ -304,7 +303,7 @@ Examples:
         await query.answer()
         update_user_ldata(user_id, "name_sub", "")
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "lss":
         await query.answer()
@@ -337,7 +336,7 @@ Examples:
         await query.answer()
         update_user_ldata(user_id, "split_size", "")
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "esplits":
         await query.answer()
@@ -345,7 +344,7 @@ Examples:
             user_id, "equal_splits", not user_dict.get("equal_splits", False)
         )
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "sscreenshots":
         await query.answer()
@@ -375,21 +374,21 @@ Examples:
         await query.answer()
         update_user_ldata(user_id, "screenshots_count", 0)
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "ss_count":
         await query.answer()
         count = int(data[3])
         update_user_ldata(user_id, "screenshots_count", count)
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "ss_album":
         await query.answer()
         current = user_dict.get("screenshots_as_album", True)
         update_user_ldata(user_id, "screenshots_as_album", not current)
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "category":
         await query.answer()
@@ -413,13 +412,13 @@ Examples:
         category = data[3]
         update_user_ldata(user_id, "category", category)
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "clear_cat":
         await query.answer()
         update_user_ldata(user_id, "category", "")
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "utemplate":
         await query.answer()
@@ -491,7 +490,7 @@ Send <code>/ignore</code> to cancel. Timeout: 60 sec"""
                     template = response.text.strip()
                     update_user_ldata(user_id, "upload_template", template)
                     await update_user_settings(query)
-                    if DATABASE_URL:
+                    if database.enabled:
                         await database.update_user_data(user_id)
         except asyncio.TimeoutError:
             await sendMessage("Too late 60s gone, try again!", message)
@@ -499,7 +498,7 @@ Send <code>/ignore</code> to cancel. Timeout: 60 sec"""
         await query.answer()
         update_user_ldata(user_id, "upload_template", "")
         await update_user_settings(query)
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_user_data(user_id)
     elif data[2] == "back":
         await client.listen.Cancel(filters.user(user_id))

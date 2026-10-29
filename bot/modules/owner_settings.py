@@ -3,7 +3,6 @@ from pyrogram.filters import regex, command
 from pyrogram import filters
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from bot import (
-    DATABASE_URL,
     GLOBAL_EXTENSION_FILTER,
     LOGGER,
     TG_MAX_SPLIT_SIZE,
@@ -225,7 +224,7 @@ async def ownerset_callback(client, callback_query):
                     except Exception as e:
                         LOGGER.error(e)
                 aria2_options["bt-stop-timeout"] = "0"
-                if DATABASE_URL:
+                if database.enabled:
                     await database.update_aria2("bt-stop-timeout", "0")
             elif data[3] == "QB_BASE_URL":
                 await (
@@ -243,7 +242,7 @@ async def ownerset_callback(client, callback_query):
             config_dict[data[3]] = value
             if hasattr(Config, data[3]):
                 Config.set(data[3], value)
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_config({data[3]: value})
             if data[3] in ["SEARCH_PLUGINS", "SEARCH_API_LINK"]:
                 await initiate_search_tools()
@@ -278,14 +277,14 @@ async def ownerset_callback(client, callback_query):
             aria2_options[data[3]] = value
             await edit_menus(message, "aria")
             await TorrentManager.change_aria2_option(data[3], value)
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_aria2(data[3], value)
         elif data[2] == "emptyaria":
             await query.answer()
             aria2_options[data[3]] = ""
             await edit_menus(message, "aria")
             await TorrentManager.change_aria2_option(data[3], "")
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_aria2(data[3], "")
     elif data[1] == "qbit":
         if data[2] == "qbit_menu":
@@ -310,8 +309,8 @@ async def ownerset_callback(client, callback_query):
             await TorrentManager.set_qbit_preferences({data[3]: ""})
             qbit_options[data[3]] = ""
             await edit_menus(message, "qbit")
-            if DATABASE_URL:
-                await database.update_qbittorrent(data[2], "")
+            if database.enabled:
+                await database.update_qbittorrent(data[3], "")
     elif data[1] == "edit":
         await query.answer()
         globals()["STATE"] = "edit"
@@ -441,7 +440,7 @@ async def start_env_listener(client, query, user_id, key):
                     if hasattr(Config, key):
                         Config.set(key, value)
                     await edit_menus(message, "env")
-                    if DATABASE_URL:
+                    if database.enabled:
                         await database.update_config({key: value})
                     if key in ["SEARCH_PLUGINS", "SEARCH_API_LINK"]:
                         await initiate_search_tools()
@@ -490,7 +489,7 @@ async def start_aria_listener(client, query, user_id, key):
                         await TorrentManager.change_aria2_option(key, value)
                     aria2_options[key] = value
                     await edit_menus(message, "aria")
-                    if DATABASE_URL:
+                    if database.enabled:
                         await database.update_aria2(key, value)
             except KeyError:
                 await query.answer("Value doesn't exist")
@@ -530,7 +529,7 @@ async def start_qbit_listener(client, query, user_id, key):
                     await TorrentManager.set_qbit_preferences({key: value})
                     qbit_options[key] = value
                     await edit_menus(message, "qbit")
-                    if DATABASE_URL:
+                    if database.enabled:
                         await database.update_qbittorrent(key, value)
             except KeyError:
                 await query.answer("Value doesn't exist")

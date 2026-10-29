@@ -1,4 +1,4 @@
-from bot import OWNER_ID, bot, config_dict, remotes_multi
+from bot import OWNER_ID, bot, config_dict, local_storage, remotes_multi
 from bot.helper.ext_utils.bot_utils import run_sync_to_async
 from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.filters import CustomFilters
@@ -26,7 +26,7 @@ async def handle_mirrorselect(_, message):
     user_id = message.from_user.id
     if await is_rclone_config(user_id, message):
         if DEFAULT_OWNER_REMOTE := config_dict["DEFAULT_OWNER_REMOTE"]:
-            if user_id == OWNER_ID:
+            if user_id == OWNER_ID and not get_rclone_data("MIRROR_SELECT_REMOTE", user_id):
                 update_rclone_data(
                     "MIRROR_SELECT_REMOTE", DEFAULT_OWNER_REMOTE, user_id
                 )
@@ -52,6 +52,8 @@ async def mirrorselect_callback(_, query):
         if await CustomFilters.sudo_filter("", message):
             if config_dict["MULTI_REMOTE_UP"]:
                 remotes_multi.append(cmd[2])
+                if local_storage:
+                    local_storage.write("settings", "multi_remotes", list(remotes_multi))
                 await list_remotes(message, menu_type=Menus.MIRROR_SELECT, edit=True)
                 return
             config_dict.update({"DEFAULT_OWNER_REMOTE": cmd[2]})
@@ -95,6 +97,8 @@ async def mirrorselect_callback(_, query):
         await query.answer()
     elif cmd[1] == "reset":
         remotes_multi.clear()
+        if local_storage:
+            local_storage.write("settings", "multi_remotes", [])
         await list_remotes(message, menu_type=Menus.MIRROR_SELECT, edit=True)
     elif cmd[1] == "close":
         await query.answer()

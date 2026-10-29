@@ -7,6 +7,7 @@ from socket import setdefaulttimeout
 from logging import getLogger, FileHandler, StreamHandler, INFO, basicConfig
 from time import time
 from faulthandler import enable as faulthandler_enable
+from os import environ
 
 faulthandler_enable()
 
@@ -24,13 +25,25 @@ basicConfig(
 
 LOGGER = getLogger(__name__)
 
-from dotenv import load_dotenv
-load_dotenv("config.env", override=True)
+from dotenv import dotenv_values, load_dotenv
+
+# Explicit deployment variables stay authoritative in local-storage mode.
+load_dotenv(
+    "config.env",
+    override=bool(environ.get("DATABASE_URL") or dotenv_values("config.env").get("DATABASE_URL")),
+)
 
 from bot.core.config_manager import Config
 Config.load()
 
 bot_id = Config.BOT_TOKEN.split(":", 1)[0]
+
+local_storage = None
+if not Config.DATABASE_URL:
+    from local_storage import LocalStorage
+
+    local_storage = LocalStorage(bot_id)
+    Config.load_dict(local_storage.prepare_config(Config.get_all()))
 
 GLOBAL_EXTENSION_FILTER = [".aria2", "!qB"]
 user_data = {}

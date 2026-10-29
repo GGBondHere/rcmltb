@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 from subprocess import run as srun
 from shutil import copyfile
 from bot import (
-    DATABASE_URL,
     GLOBAL_EXTENSION_FILTER,
     IS_PREMIUM_USER,
     LOGGER,
@@ -76,13 +75,13 @@ async def load_config():
     if len(ALLOWED_CHATS) != 0:
         aid = ALLOWED_CHATS.split()
         for id_ in aid:
-            user_data[int(id_.strip())] = {"is_auth": True}
+            user_data.setdefault(int(id_.strip()), {})["is_auth"] = True
 
     SUDO_USERS = environ.get("SUDO_USERS", "")
     if len(SUDO_USERS) != 0:
         aid = SUDO_USERS.split()
         for id_ in aid:
-            user_data[int(id_.strip())] = {"is_sudo": True}
+            user_data.setdefault(int(id_.strip()), {})["is_sudo"] = True
 
     LEECH_LOG = environ.get("LEECH_LOG", "")
     if len(LEECH_LOG) != 0:
@@ -176,13 +175,13 @@ async def load_config():
     if len(TORRENT_TIMEOUT) == 0:
         await TorrentManager.change_aria2_option("bt-stop-timeout", "0")
         aria2_options["bt-stop-timeout"] = "0"
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_aria2("bt-stop-timeout", "0")
         TORRENT_TIMEOUT = ""
     else:
         await TorrentManager.change_aria2_option("bt-stop-timeout", TORRENT_TIMEOUT)
         aria2_options["bt-stop-timeout"] = TORRENT_TIMEOUT
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_aria2("bt-stop-timeout", TORRENT_TIMEOUT)
         TORRENT_TIMEOUT = int(TORRENT_TIMEOUT)
 
@@ -338,7 +337,7 @@ async def load_config():
         }
     )
 
-    if DATABASE_URL:
+    if database.enabled:
         await database.update_config(config_dict)
     await initiate_search_tools()
 
@@ -490,7 +489,7 @@ async def _delete_section_file(user_id, section):
         if ospath.exists(path):
             srun(["rm", "-rf", path])
         config_dict["USE_SERVICE_ACCOUNTS"] = False
-        if DATABASE_URL:
+        if database.enabled:
             await database.update_config({"USE_SERVICE_ACCOUNTS": False})
             await database.update_private_file("accounts.zip")
         return
@@ -498,7 +497,7 @@ async def _delete_section_file(user_id, section):
     if ospath.exists(path):
         osremove(path)
 
-    if DATABASE_URL:
+    if database.enabled:
         await database.update_private_file(path)
 
 
@@ -668,7 +667,7 @@ async def set_config_listener(
                     message,
                 )
                 return
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_user_doc(user_id, file_type, rclone_path)
             await sendMessage(
                 f"✅ <b>rclone.conf uploaded successfully.</b>\n"
@@ -687,7 +686,7 @@ async def set_config_listener(
                     message,
                 )
                 return
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_user_doc(user_id, "token_pickle", des_dir)
             await sendMessage("✅ <b>token.pickle uploaded successfully.</b>", message)
         elif target_section == "config":
@@ -701,7 +700,7 @@ async def set_config_listener(
                 return
             load_dotenv("config.env", override=True)
             await load_config()
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_private_file("config.env")
             await sendMessage("✅ <b>config.env uploaded successfully.</b>", message)
         elif target_section == "accounts":
@@ -726,7 +725,7 @@ async def set_config_listener(
                 )
             ).wait()
             await (await create_subprocess_exec("chmod", "-R", "777", "accounts")).wait()
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_private_file("accounts.zip")
             await sendMessage("✅ <b>accounts.zip uploaded and extracted.</b>", message)
         else:
@@ -736,7 +735,7 @@ async def set_config_listener(
                 if environ.get("HOME") == "/root":
                     await (await create_subprocess_exec("cp", ".netrc", "/root/.netrc")).wait()
                 await (await create_subprocess_exec("chmod", "600", ".netrc")).wait()
-            if DATABASE_URL:
+            if database.enabled:
                 await database.update_private_file(file_name)
             await sendMessage("✅ <b>File uploaded successfully.</b>", message)
         if ospath.exists("accounts.zip"):

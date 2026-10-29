@@ -16,6 +16,9 @@ from bot import (
 
 
 class DbManager:
+    enabled = True
+    is_local = False
+
     def __init__(self):
         self.__err = False
 
@@ -199,4 +202,9 @@ class DbManager:
         await self._db_ref[name][bot_id].drop()
 
 
-database = DbManager()
+if DATABASE_URL:
+    database = DbManager()
+else:
+    from bot.helper.ext_utils.sqlite_handler import SQLiteManager
+
+    database = SQLiteManager()

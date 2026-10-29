@@ -48,6 +48,8 @@ services:
       - ./downloads:/usr/src/app/downloads
       # 持久化个人和全局 rclone 配置。
       - ./rclone:/usr/src/app/rclone
+      # 持久化 SQLite 设置、凭据备份及网页选种密钥，无需额外部署 MongoDB。
+      - ./data:/usr/src/app/data
     # 可选网页端口仅绑定本机，按需通过反向代理访问。
     ports:
       - "127.0.0.1:18080:18080" # qBittorrent 网页选种
