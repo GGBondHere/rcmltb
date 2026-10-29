@@ -493,7 +493,8 @@ if config_dict["AUTO_MIRROR"]:
     bot.add_handler(
         MessageHandler(
             handle_auto_mirror,
-            filters=filters.video | filters.document | filters.audio | filters.photo,
+            filters=(filters.video | filters.document | filters.audio | filters.photo)
+            & (CustomFilters.user_filter | CustomFilters.chat_filter),
         )
     )
 
