@@ -501,6 +501,7 @@ class TaskListener(TaskConfig):
         dir_id="",
         private=False,
     ):
+        self.upload_succeeded = True
         msg = f"<b>Name: </b><code>{escape(name)}</code>\n\n"
         msg += f"<b>Size: </b>{size}"
 
@@ -522,6 +523,8 @@ class TaskListener(TaskConfig):
                 if fmsg != "":
                     await sendMessage(msg + fmsg, self.message)
             if self.seed:
+                if getattr(self, "multi_remote_upload", False):
+                    return
                 if self.newDir:
                     await clean_target(self.newDir)
                 return
@@ -552,7 +555,7 @@ class TaskListener(TaskConfig):
                     )
             else:
                 cmd = ["rclone", "link", f"--config={rclone_config}", rclone_path]
-                res, code = await cmd_exec(cmd)
+                res, _, code = await cmd_exec(cmd)
                 if code == 0:
                     buttons.url_buildbutton("Cloud Link", res)
                 else:
@@ -593,13 +596,15 @@ class TaskListener(TaskConfig):
             await sendMessage(msg, self.message, buttons.build_menu(1))
 
             if self.seed:
+                if getattr(self, "multi_remote_upload", False):
+                    return
                 if self.newDir:
                     await clean_target(self.newDir)
                 elif self.compress:
                     await clean_target(f"{self.dir}/{name}")
                 return
 
-        if not config_dict["MULTI_REMOTE_UP"]:
+        if not getattr(self, "multi_remote_upload", False):
             await clean_download(self.dir)
 
         async with status_dict_lock:
@@ -617,6 +622,7 @@ class TaskListener(TaskConfig):
             await update_all_messages()
 
     async def onDownloadError(self, error, button=None):
+        self.upload_succeeded = False
         async with status_dict_lock:
             if self.uid in status_dict.keys():
                 del status_dict[self.uid]
@@ -637,11 +643,8 @@ class TaskListener(TaskConfig):
         else:
             await update_all_messages()
 
-        await clean_download(self.dir)
-        if self.newDir:
-            await clean_download(self.newDir)
-
     async def onUploadError(self, error):
+        self.upload_succeeded = False
         async with status_dict_lock:
             if self.uid in status_dict.keys():
                 del status_dict[self.uid]
@@ -653,8 +656,3 @@ class TaskListener(TaskConfig):
             await self.clean()
         else:
             await update_all_messages()
-
-        await clean_download(self.dir)
-        if self.newDir:
-            await clean_download(self.newDir)
-

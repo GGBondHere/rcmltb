@@ -140,7 +140,7 @@ class QbitTorrentStatus:
             await sleep(0.3)
             await self.__listener.onDownloadError("Download stopped by user!")
             await TorrentManager.qbittorrent.torrents.delete(
-                hashes=[self.__info.hash], delete_files=True
+                hashes=[self.__info.hash], delete_files=False
             )
             try:
                 await TorrentManager.qbittorrent.torrents.delete_tags(

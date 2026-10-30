@@ -1,6 +1,5 @@
 from asyncio import create_subprocess_exec
 import inspect
-from shutil import rmtree
 from aiohttp import ClientSession
 from bot.helper.ext_utils.bot_utils import (
     cmd_exec,
@@ -107,24 +106,14 @@ async def clean_target(path: str):
 
 async def start_cleanup():
     try:
-        await TorrentManager.qbittorrent.torrents.delete(hashes="all", delete_files=True)
+        await TorrentManager.qbittorrent.torrents.delete(hashes="all", delete_files=False)
     except Exception:
         pass
-    if not config_dict["LOCAL_MIRROR"]:
-        try:
-            await aiormtree(DOWNLOAD_DIR)
-        except Exception as e:
-            LOGGER.error(str(e))
     await makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
 async def clean_all():
     await TorrentManager.remove_all()
-    if not config_dict["LOCAL_MIRROR"]:
-        try:
-            rmtree(DOWNLOAD_DIR)
-        except Exception as e:
-            LOGGER.error(str(e))
 
 
 async def _shutdown_bot():

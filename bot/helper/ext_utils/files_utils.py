@@ -1,6 +1,5 @@
 from asyncio import create_subprocess_exec
 from asyncio.subprocess import PIPE
-from shutil import rmtree
 from re import (
     I,
     IGNORECASE,
@@ -132,22 +131,12 @@ async def remove_non_included_files(fpath, included_exts):
 
 
 async def start_cleanup():
-    await TorrentManager.qbittorrent.torrents.delete(hashes="all", delete_files=True)
-    if not config_dict["LOCAL_MIRROR"]:
-        try:
-            await aiormtree(config_dict["DOWNLOAD_DIR"])
-        except Exception as e:
-            LOGGER.error(str(e))
+    await TorrentManager.qbittorrent.torrents.delete(hashes="all", delete_files=False)
     await makedirs(config_dict["DOWNLOAD_DIR"], exist_ok=True)
 
 
 async def clean_all():
     await TorrentManager.remove_all()
-    if not config_dict["LOCAL_MIRROR"]:
-        try:
-            rmtree(config_dict["DOWNLOAD_DIR"])
-        except Exception as e:
-            LOGGER.error(str(e))
 
 
 def exit_clean_up(signal, frame):

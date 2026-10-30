@@ -1,18 +1,27 @@
 import os
+from asyncio import TimeoutError
 import tempfile
 import unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+from shutil import copyfile
+
+from source_loader import load_source
 
 
-os.environ.setdefault("BOT_TOKEN", "123456:TESTTOKEN")
-os.environ.setdefault("OWNER_ID", "6319125974")
-os.environ.setdefault("TELEGRAM_API_ID", "12345")
-os.environ.setdefault("TELEGRAM_API_HASH", "testhash")
-
-
-from bot.helper.ext_utils import rclone_utils
-from bot.modules import botfiles, mirror_leech
+# Exercise the real handlers without importing bot.__init__ (uvloop and clients).
+rclone_utils = load_source("bot/helper/ext_utils/rclone_utils.py", {"is_rclone_config", "can_manage_rclone"}, {
+    "OWNER_ID": 6319125974, "user_data": {}, "config_dict": {"MULTI_RCLONE_CONFIG": True},
+    "ospath": os.path, "sendMessage": AsyncMock(), "send_rclone_config_upload_prompt": AsyncMock(),
+})
+mirror_leech = load_source("bot/modules/mirror_leech.py", {"mirror_leech"}, {
+    "is_rclone_config": AsyncMock(), "is_remote_selected": AsyncMock(),
+})
+botfiles = load_source("bot/modules/botfiles.py", {"set_config_listener"}, {
+    "ospath": os.path, "makedirs": os.makedirs, "copyfile": copyfile,
+    "sendMessage": AsyncMock(), "database": SimpleNamespace(enabled=False),
+    "filters": MagicMock(), "TimeoutError": TimeoutError,
+})
 
 
 class _PromptMessage:
@@ -98,7 +107,7 @@ class MirrorFunctionalityTests(unittest.IsolatedAsyncioTestCase):
             os.chdir(tmpdir)
             try:
                 with patch.object(botfiles, "sendMessage", AsyncMock()), patch.object(
-                    botfiles, "DATABASE_URL", ""
+                    botfiles, "database", SimpleNamespace(enabled=False)
                 ):
                     await botfiles.set_config_listener(
                         client,

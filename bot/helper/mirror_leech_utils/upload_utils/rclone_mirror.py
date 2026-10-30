@@ -13,7 +13,7 @@ from bot import (
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.ext_utils.human_format import get_readable_file_size
 from bot.helper.telegram_helper.message_utils import sendStatusMessage
-from bot.helper.ext_utils.misc_utils import clean_download, count_files_and_folders
+from bot.helper.ext_utils.misc_utils import count_files_and_folders
 from bot.helper.ext_utils.rclone_data_holder import get_rclone_data
 from bot.helper.ext_utils.rclone_utils import (
     get_rclone_path,
@@ -52,15 +52,17 @@ class RcloneMirror:
 
         if config_dict["MULTI_RCLONE_CONFIG"] or is_sudo_filter:
             if is_multi_remote_up and len(remotes_multi) > 0:
-                for rc_remote in remotes_multi:
-                    await self.upload(
+                upload_remotes = tuple(remotes_multi)
+                for index, rc_remote in enumerate(upload_remotes):
+                    self.__listener.multi_remote_upload = index < len(upload_remotes) - 1
+                    if not await self.upload(
                         self.__path,
                         conf_path,
                         mime_type,
                         rc_remote,
                         folder_name,
-                    )
-                await clean_download(self.__path)
+                    ):
+                        return
                 return
 
             rc_remote = get_rclone_data("MIRROR_SELECT_REMOTE", self.__user_id)
@@ -86,6 +88,8 @@ class RcloneMirror:
     async def upload(
         self, path, conf_path, mime_type, remote, folder_name, base_dir=""
     ):
+        if self.__is_cancelled:
+            return False
         # Get user settings for template
         from bot import user_data
         user_dict = user_data.get(self.__user_id, {})
@@ -167,6 +171,7 @@ class RcloneMirror:
                 rclone_path=rclone_path,
                 is_gdrive=is_gdrive,
             )
+            return not self.__is_cancelled
         else:
             error = (await self.process.stderr.read()).decode().strip()
             await self.__listener.onUploadError(f"Error: {error}!")

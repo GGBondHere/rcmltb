@@ -21,10 +21,10 @@ def _get_tag(tags):
     return tags[0] if isinstance(tags, list) else tags
 
 
-async def __remove_torrent(hash_, tag):
+async def __remove_torrent(hash_, tag, delete_files=False):
     tag = _get_tag(tag)
     await TorrentManager.qbittorrent.torrents.delete(
-        hashes=[hash_], delete_files=True
+        hashes=[hash_], delete_files=delete_files
     )
     async with qb_listener_lock:
         if tag in QbTorrents:
@@ -58,8 +58,9 @@ async def __onSeedFinish(tor):
         return
     listener = download.listener()
     msg = f"Seeding stopped with Ratio: {round(tor.ratio, 3)} and Time: {get_readable_time(tor.seeding_time)}"
+    delete_files = getattr(listener, "upload_succeeded", False) and not config_dict["LOCAL_MIRROR"]
     await listener.onUploadError(msg)
-    await __remove_torrent(ext_hash, tor.tags)
+    await __remove_torrent(ext_hash, tor.tags, delete_files=delete_files)
 
 
 @new_task
