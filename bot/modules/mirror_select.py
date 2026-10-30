@@ -176,7 +176,7 @@ bot.add_handler(
         & (CustomFilters.user_filter | CustomFilters.chat_filter),
     )
 )
-bot.add_handler(CallbackQueryHandler(next_page_mirrorselect, filters=regex("next_ms")))
+bot.add_handler(CallbackQueryHandler(next_page_mirrorselect, filters=regex("next_ms") & CustomFilters.rclone_callback_filter))
 bot.add_handler(
-    CallbackQueryHandler(mirrorselect_callback, filters=regex("mirrorselectmenu"))
+    CallbackQueryHandler(mirrorselect_callback, filters=regex("mirrorselectmenu") & CustomFilters.rclone_callback_filter)
 )

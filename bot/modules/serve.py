@@ -135,9 +135,9 @@ bot.add_handler(
     MessageHandler(
         serve,
         filters=filters.command(BotCommands.ServeCommand)
-        & (CustomFilters.owner_filter | CustomFilters.chat_filter),
+        & CustomFilters.owner_filter,
     )
 )
 bot.add_handler(
-    CallbackQueryHandler(serve_callback, filters=filters.regex("servemenu"))
+    CallbackQueryHandler(serve_callback, filters=filters.regex("servemenu") & CustomFilters.owner_filter & CustomFilters.rclone_callback_filter)
 )

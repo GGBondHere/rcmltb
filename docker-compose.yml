@@ -26,8 +26,7 @@ services:
 
       # 常用：你的 rclone remote 名称，不带冒号；也可留空后在机器人中选择。
       DEFAULT_OWNER_REMOTE: ""
-      # 每位用户使用自己的 rclone 配置；所有者可通过 /files 上传配置。
-      MULTI_RCLONE_CONFIG: "True"
+      # 默认共享所有者通过 /files 上传的配置及 /ms 目标；独立配置模式可按 env 模板启用。
       # 网盘复制时允许服务端传输，需对应网盘支持。
       SERVER_SIDE: "True"
       # 可选：机器人读不到原消息时使用的个人账号会话；转发媒体无需填写。

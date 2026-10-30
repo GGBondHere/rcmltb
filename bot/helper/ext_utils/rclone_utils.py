@@ -2,7 +2,7 @@ from os import path as ospath
 from asyncio import create_subprocess_exec
 from asyncio.subprocess import PIPE
 from json import loads as jsonloads
-from configparser import ConfigParser
+from configparser import ConfigParser, Error as ConfigError
 from bot import GLOBAL_EXTENSION_FILTER, LOGGER, OWNER_ID, config_dict, remotes_multi, user_data
 from bot.helper.ext_utils.bot_utils import cmd_exec, run_sync_to_async
 from bot.helper.telegram_helper.bot_commands import BotCommands
@@ -22,8 +22,44 @@ from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.ext_utils.rclone_data_holder import get_rclone_data, update_rclone_data
 
 
+def can_manage_rclone(user_id):
+    return bool(config_dict["MULTI_RCLONE_CONFIG"] or user_id == OWNER_ID
+                or user_data.get(user_id, {}).get("is_sudo"))
+
+
+def is_shared_owner_upload(user_id):
+    return not can_manage_rclone(user_id) and not config_dict["DEFAULT_GLOBAL_REMOTE"]
+
+
+def get_rclone_upload_target(user_id):
+    if not can_manage_rclone(user_id):
+        if remote := config_dict["DEFAULT_GLOBAL_REMOTE"]:
+            return remote, ""
+        user_id = OWNER_ID
+        remote = get_rclone_data("MIRROR_SELECT_REMOTE", user_id)
+        if not remote:
+            raise ValueError("The owner must select an upload destination with /ms first.")
+        conf = ConfigParser(interpolation=None)
+        try:
+            conf.read(f"rclone/{OWNER_ID}/rclone.conf")
+        except (ConfigError, OSError, UnicodeError):
+            raise ValueError("The owner's rclone.conf could not be read. Ask the owner to check /files.") from None
+        if not conf.has_section(remote):
+            raise ValueError("The owner's selected remote is missing from rclone.conf. Ask the owner to check /files and /ms.")
+    else:
+        remote = get_rclone_data("MIRROR_SELECT_REMOTE", user_id)
+    return remote, get_rclone_data("MIRROR_SELECT_BASE_DIR", user_id)
+
+
 async def is_remote_selected(user_id, message, open_selector=False):
     try:
+        if is_shared_owner_upload(user_id):
+            try:
+                get_rclone_upload_target(user_id)
+                return True
+            except (ValueError, OSError) as error:
+                await sendMessage(str(error), message)
+                return False
         if get_rclone_data("MIRROR_SELECT_REMOTE", user_id):
             return True
         if await CustomFilters.sudo_filter("", message):
@@ -50,8 +86,14 @@ async def is_remote_selected(user_id, message, open_selector=False):
         return False
 
 
-async def is_rclone_config(user_id, message, isLeech=False, show_prompt=False):
+async def is_rclone_config(user_id, message, isLeech=False, show_prompt=False, *, for_upload=False):
     is_sudo_user = user_id == OWNER_ID or user_data.get(user_id, {}).get("is_sudo")
+
+    if not for_upload and not can_manage_rclone(user_id):
+        if isLeech:
+            return True
+        await sendMessage("Shared storage is for uploads only. Cloud management is not allowed.", message)
+        return False
 
     if config_dict["MULTI_RCLONE_CONFIG"]:
         path = f"rclone/{user_id}/rclone.conf"
@@ -61,8 +103,12 @@ async def is_rclone_config(user_id, message, isLeech=False, show_prompt=False):
             path = f"rclone/{user_id}/rclone.conf"
             no_path_msg = "Send a rclone config file, use /files command"
         else:
-            path = f"rclone/rclone_global/rclone.conf"
-            no_path_msg = "Rclone config file not found"
+            if is_shared_owner_upload(user_id):
+                path = f"rclone/{OWNER_ID}/rclone.conf"
+                no_path_msg = "The owner must upload rclone.conf with /files first."
+            else:
+                path = "rclone/rclone_global/rclone.conf"
+                no_path_msg = "Rclone config file not found"
 
     if ospath.exists(path):
         return True
@@ -90,8 +136,11 @@ async def send_rclone_config_upload_prompt(user_id, message):
     )
 
 
-async def get_rclone_path(user_id, message=None):
+async def get_rclone_path(user_id, message=None, *, for_upload=False):
     is_sudo_user = user_id == OWNER_ID or user_data.get(user_id, {}).get("is_sudo")
+
+    if not for_upload and not can_manage_rclone(user_id):
+        raise NotRclonePathFound("Shared storage is for uploads only. Cloud management is not allowed.")
 
     if config_dict["MULTI_RCLONE_CONFIG"]:
         path = f"rclone/{user_id}/rclone.conf"
@@ -99,11 +148,14 @@ async def get_rclone_path(user_id, message=None):
         if is_sudo_user:
             path = f"rclone/{user_id}/rclone.conf"
         else:
-            path = f"rclone/rclone_global/rclone.conf"
+            path = (f"rclone/{OWNER_ID}/rclone.conf" if is_shared_owner_upload(user_id)
+                    else "rclone/rclone_global/rclone.conf")
 
     if ospath.exists(path):
         return path
     else:
+        if for_upload and is_shared_owner_upload(user_id):
+            raise NotRclonePathFound("The owner must upload rclone.conf with /files first.")
         await sendMessage("Rclone path not found", message)
         raise NotRclonePathFound(f"ERROR: Rclone path not found")
 

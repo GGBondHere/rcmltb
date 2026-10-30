@@ -33,7 +33,7 @@ async def mirror_batch(client, message):
 async def _batch(client, message, isLeech=False):
     user_id = message.from_user.id
     if not isLeech:
-        if not await is_rclone_config(user_id, message):
+        if not await is_rclone_config(user_id, message, for_upload=True):
             return
         if not await is_remote_selected(user_id, message):
             return

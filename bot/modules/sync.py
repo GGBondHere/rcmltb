@@ -98,4 +98,4 @@ bot.add_handler(
     )
 )
 
-bot.add_handler(CallbackQueryHandler(sync_callback, filters=regex("syncmenu")))
+bot.add_handler(CallbackQueryHandler(sync_callback, filters=regex("syncmenu") & CustomFilters.rclone_callback_filter))

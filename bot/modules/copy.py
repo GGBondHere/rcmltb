@@ -36,7 +36,7 @@ async def handle_copy(client, message):
     if await is_rclone_config(user_id, message):
         listener = TaskListener(message, tag, user_id)
         listener_dict[ message.id] = [listener]
-        if config_dict["MULTI_RCLONE_CONFIG"] or CustomFilters.sudo_filter("", message):
+        if config_dict["MULTI_RCLONE_CONFIG"] or await CustomFilters.sudo_filter("", message):
             await list_remotes(
                 message, remote_type="remote_origin", menu_type=Menus.COPY
             )
@@ -236,5 +236,5 @@ bot.add_handler(
         & (CustomFilters.user_filter | CustomFilters.chat_filter),
     )
 )
-bot.add_handler(CallbackQueryHandler(next_page_copy, filters=regex("next_copy")))
-bot.add_handler(CallbackQueryHandler(copy_menu_callback, filters=regex("copymenu")))
+bot.add_handler(CallbackQueryHandler(next_page_copy, filters=regex("next_copy") & CustomFilters.rclone_callback_filter))
+bot.add_handler(CallbackQueryHandler(copy_menu_callback, filters=regex("copymenu") & CustomFilters.rclone_callback_filter))

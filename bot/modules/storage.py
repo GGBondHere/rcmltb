@@ -98,4 +98,4 @@ bot.add_handler(
         & (CustomFilters.user_filter | CustomFilters.chat_filter),
     )
 )
-bot.add_handler(CallbackQueryHandler(storage_menu_cb, filters=regex("storagemenu")))
+bot.add_handler(CallbackQueryHandler(storage_menu_cb, filters=regex("storagemenu") & CustomFilters.rclone_callback_filter))

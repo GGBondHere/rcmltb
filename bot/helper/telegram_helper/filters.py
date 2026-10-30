@@ -1,5 +1,5 @@
 from pyrogram.filters import create
-from bot import OWNER_ID, user_data
+from bot import OWNER_ID, config_dict, user_data
 
 
 class CustomFilters:
@@ -53,4 +53,22 @@ class CustomFilters:
         return bool(uid == OWNER_ID or uid in user_data and user_data[uid].get("is_sudo"))
 
     sudo_filter = create(custom_sudo_filter)
+
+    async def custom_user_callback_filter(self, client, query):
+        uid = query.from_user.id
+        original = query.message.reply_to_message
+        if not original or not original.from_user or original.from_user.id != uid:
+            return False
+        return await CustomFilters.user_filter(client, original)
+
+    user_callback_filter = create(custom_user_callback_filter)
+
+    async def custom_rclone_callback_filter(self, client, query):
+        if not await CustomFilters.user_callback_filter(client, query):
+            return False
+        uid = query.from_user.id
+        return bool(config_dict["MULTI_RCLONE_CONFIG"] or uid == OWNER_ID
+                    or user_data.get(uid, {}).get("is_sudo"))
+
+    rclone_callback_filter = create(custom_rclone_callback_filter)
 

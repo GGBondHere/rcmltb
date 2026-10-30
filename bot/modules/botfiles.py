@@ -481,7 +481,10 @@ async def _view_section_file(client, message, user_id, section):
     if not ospath.exists(path):
         await sendMessage("File not found.", message)
         return
-    await client.send_document(document=path, chat_id=message.chat.id)
+    try:
+        await client.send_document(document=path, chat_id=user_id)
+    except Exception:
+        await sendMessage("Open a private chat with the bot and use /files to view configuration files.", message)
 
 
 async def _delete_section_file(user_id, section):
@@ -761,4 +764,4 @@ bot.add_handler(
         & (CustomFilters.user_filter | CustomFilters.chat_filter),
     )
 )
-bot.add_handler(CallbackQueryHandler(botfiles_callback, filters=regex(r"configmenu")))
+bot.add_handler(CallbackQueryHandler(botfiles_callback, filters=regex(r"configmenu") & CustomFilters.rclone_callback_filter))

@@ -88,4 +88,4 @@ bot.add_handler(MessageHandler(
     filters=command(BotCommands.BiSyncCommand)
     & (CustomFilters.user_filter | CustomFilters.chat_filter),
 ))
-bot.add_handler(CallbackQueryHandler(bysync_cb, filters=regex("bisyncmenu")))
+bot.add_handler(CallbackQueryHandler(bysync_cb, filters=regex("bisyncmenu") & CustomFilters.rclone_callback_filter))

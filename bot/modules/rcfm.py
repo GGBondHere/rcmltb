@@ -186,8 +186,8 @@ async def next_page_myfiles(client, callback_query):
     await editMessage(msg, message, reply_markup=buttons.build_menu(1))
 
 
-bot.add_handler(CallbackQueryHandler(myfiles_callback, filters=regex("myfilesmenu")))
-bot.add_handler(CallbackQueryHandler(next_page_myfiles, filters=regex("next_myfiles")))
+bot.add_handler(CallbackQueryHandler(myfiles_callback, filters=regex("myfilesmenu") & CustomFilters.rclone_callback_filter))
+bot.add_handler(CallbackQueryHandler(next_page_myfiles, filters=regex("next_myfiles") & CustomFilters.rclone_callback_filter))
 bot.add_handler(
     MessageHandler(
         handle_myfiles,

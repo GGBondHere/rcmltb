@@ -229,6 +229,6 @@ bot.add_handler(
         & (CustomFilters.user_filter | CustomFilters.chat_filter),
     )
 )
-bot.add_handler(CallbackQueryHandler(next_page_leech, filters=regex("next_leech")))
-bot.add_handler(CallbackQueryHandler(leech_menu_cb, filters=regex("leechmenu")))
-bot.add_handler(CallbackQueryHandler(selection_callback, filters=regex("leechselect")))
+bot.add_handler(CallbackQueryHandler(next_page_leech, filters=regex("next_leech") & CustomFilters.rclone_callback_filter))
+bot.add_handler(CallbackQueryHandler(leech_menu_cb, filters=regex("leechmenu") & CustomFilters.rclone_callback_filter))
+bot.add_handler(CallbackQueryHandler(selection_callback, filters=regex("leechselect") & CustomFilters.user_callback_filter))

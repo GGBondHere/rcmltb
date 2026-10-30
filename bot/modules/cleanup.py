@@ -64,4 +64,4 @@ bot.add_handler(MessageHandler(
     filters=command(BotCommands.CleanupCommand)
     & (CustomFilters.user_filter | CustomFilters.chat_filter),
 ))
-bot.add_handler(CallbackQueryHandler(cleanup_callback, filters=regex("cleanupmenu")))
+bot.add_handler(CallbackQueryHandler(cleanup_callback, filters=regex("cleanupmenu") & CustomFilters.rclone_callback_filter))

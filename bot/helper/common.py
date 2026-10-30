@@ -92,7 +92,7 @@ class TaskConfig:
                 raise ValueError("No Upload Destination!")
             if self.up_dest.startswith("rcl"):
                 from bot.helper.ext_utils.rclone_utils import is_rclone_config
-                if not await is_rclone_config(self.user_id, self.message):
+                if not await is_rclone_config(self.user_id, self.message, for_upload=True):
                     raise ValueError("Rclone config not found!")
             elif self.up_dest.startswith("gdl"):
                 raise ValueError("Google Drive interactive selection not yet supported for yt-dlp.")

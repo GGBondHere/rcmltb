@@ -342,16 +342,16 @@ class YtDlp(TaskListener):
                 }
 
         if not self.is_leech and not self.up_dest:
-            from bot.helper.ext_utils.rclone_data_holder import get_rclone_data
-            from bot.helper.ext_utils.rclone_utils import is_rclone_config, is_remote_selected
+            from bot.helper.ext_utils.rclone_utils import (
+                get_rclone_upload_target, is_rclone_config, is_remote_selected,
+            )
 
-            if not await is_rclone_config(self.user_id, self.message):
+            if not await is_rclone_config(self.user_id, self.message, for_upload=True):
                 return
             if not await is_remote_selected(self.user_id, self.message):
                 return
 
-            selected_remote = get_rclone_data("MIRROR_SELECT_REMOTE", self.user_id)
-            selected_base = get_rclone_data("MIRROR_SELECT_BASE_DIR", self.user_id) or ""
+            selected_remote, selected_base = get_rclone_upload_target(self.user_id)
             if selected_remote:
                 self.up_dest = f"{selected_remote}:{selected_base}".rstrip("/")
             elif config_dict.get("DEFAULT_GLOBAL_REMOTE"):

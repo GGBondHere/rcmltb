@@ -9,18 +9,20 @@ from bot import (
     status_dict_lock,
     remotes_multi,
     config_dict,
+    user_data,
 )
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.ext_utils.human_format import get_readable_file_size
 from bot.helper.telegram_helper.message_utils import sendStatusMessage
 from bot.helper.ext_utils.misc_utils import count_files_and_folders
-from bot.helper.ext_utils.rclone_data_holder import get_rclone_data
 from bot.helper.ext_utils.rclone_utils import (
     get_rclone_path,
+    get_rclone_upload_target,
     is_gdrive_remote,
     setRcloneFlags,
 )
-from bot.helper.ext_utils.template_utils import apply_upload_template
+from bot.helper.ext_utils.template_utils import apply_upload_template, join_upload_path
+from bot.helper.ext_utils.exceptions import NotRclonePathFound
 from bot.helper.mirror_leech_utils.status_utils.rclone_status import RcloneStatus
 from bot.helper.mirror_leech_utils.status_utils.status_utils import MirrorStatus
 
@@ -45,7 +47,12 @@ class RcloneMirror:
         else:
             mime_type = "File"
 
-        conf_path = await get_rclone_path(self.__user_id, self.message)
+        try:
+            conf_path = await get_rclone_path(self.__user_id, self.message, for_upload=True)
+            rc_remote, base_dir = get_rclone_upload_target(self.__user_id)
+        except (NotRclonePathFound, ValueError, OSError) as error:
+            await self.__listener.onUploadError(str(error))
+            return
         folder_name = self.name.replace(".", "")
         is_multi_remote_up = config_dict["MULTI_REMOTE_UP"]
         is_sudo_filter = await CustomFilters.sudo_filter("", self.message)
@@ -65,25 +72,9 @@ class RcloneMirror:
                         return
                 return
 
-            rc_remote = get_rclone_data("MIRROR_SELECT_REMOTE", self.__user_id)
-            base_dir = get_rclone_data("MIRROR_SELECT_BASE_DIR", self.__user_id)
-
-            await self.upload(
-                self.__path, conf_path, mime_type, rc_remote, folder_name, base_dir
-            )
-        else:
-            DEFAULT_GLOBAL_REMOTE = config_dict["DEFAULT_GLOBAL_REMOTE"]
-            if DEFAULT_GLOBAL_REMOTE:
-                await self.upload(
-                    self.__path,
-                    conf_path,
-                    mime_type,
-                    DEFAULT_GLOBAL_REMOTE,
-                    folder_name,
-                )
-            else:
-                await self.__listener.onUploadError("DEFAULT_GLOBAL_REMOTE not found")
-                return
+        await self.upload(
+            self.__path, conf_path, mime_type, rc_remote, folder_name, base_dir
+        )
 
     async def upload(
         self, path, conf_path, mime_type, remote, folder_name, base_dir=""
@@ -91,7 +82,6 @@ class RcloneMirror:
         if self.__is_cancelled:
             return False
         # Get user settings for template
-        from bot import user_data
         user_dict = user_data.get(self.__user_id, {})
         template = user_dict.get("upload_template") or config_dict.get("UPLOAD_PATH_TEMPLATE", "")
 
@@ -106,10 +96,11 @@ class RcloneMirror:
                 category=category,
                 task_type="mirror"
             )
-            if base_dir:
-                base_dir = f"{base_dir}/{dynamic_path}".replace("//", "/")
-            else:
-                base_dir = f"/{dynamic_path}"
+            try:
+                base_dir = join_upload_path(base_dir, dynamic_path)
+            except ValueError as error:
+                await self.__listener.onUploadError(str(error))
+                return False
 
         if mime_type == "Folder":
             self.name = folder_name

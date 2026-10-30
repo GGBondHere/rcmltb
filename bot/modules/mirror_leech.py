@@ -34,6 +34,7 @@ from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.ext_utils.misc_utils import get_readable_size
 from bot.helper.ext_utils.rclone_data_holder import update_rclone_data
 from bot.helper.ext_utils.rclone_utils import (
+    can_manage_rclone,
     is_rclone_config,
     is_remote_selected,
     list_remotes,
@@ -92,7 +93,7 @@ async def mirror_leech(
     message_id = message.id
 
     if not isLeech:
-        if not await is_rclone_config(user_id, message, show_prompt=source_link is None):
+        if not await is_rclone_config(user_id, message, show_prompt=source_link is None, for_upload=True):
             return
         if not await is_remote_selected(user_id, message, open_selector=source_link is None):
             return
@@ -357,7 +358,7 @@ async def mirror_menu(client, query):
         return
     elif cmd[1] == "default":
         await query_message.delete()
-        if config_dict["REMOTE_SELECTION"] and not is_Leech:
+        if config_dict["REMOTE_SELECTION"] and not is_Leech and can_manage_rclone(user_id):
             await list_remotes(message, menu_type=Menus.REMOTE_SELECT)
         else:
             tgdown = TelegramDownloader(
@@ -378,7 +379,7 @@ async def mirror_menu(client, query):
                     await client.listen.Cancel(filters.user(user_id))
                 else:
                     new_name = response.text.strip()
-                    if config_dict["REMOTE_SELECTION"] and not is_Leech:
+                    if config_dict["REMOTE_SELECTION"] and not is_Leech and can_manage_rclone(user_id):
                         listener_dict[message_id][5] = new_name
                         await list_remotes(message, menu_type=Menus.REMOTE_SELECT)
                     else:
@@ -444,7 +445,7 @@ async def handle_auto_mirror(client, message):
 
     user_id = message.from_user.id
 
-    if not await is_rclone_config(user_id, message):
+    if not await is_rclone_config(user_id, message, for_upload=True):
         return
     if not await is_remote_selected(user_id, message):
         return
@@ -503,9 +504,9 @@ bot.add_handler(
         & (CustomFilters.user_filter | CustomFilters.chat_filter),
     )
 )
-bot.add_handler(CallbackQueryHandler(mirror_menu, filters=filters.regex("mirrormenu")))
+bot.add_handler(CallbackQueryHandler(mirror_menu, filters=filters.regex("mirrormenu") & CustomFilters.user_callback_filter))
 bot.add_handler(
-    CallbackQueryHandler(mirror_select, filters=filters.regex("remoteselectmenu"))
+    CallbackQueryHandler(mirror_select, filters=filters.regex("remoteselectmenu") & CustomFilters.rclone_callback_filter)
 )
 
 if config_dict["AUTO_MIRROR"]:
