@@ -3,7 +3,9 @@ from functools import partial
 from os import path as ospath
 from shutil import which
 from time import time
+from html import escape
 from yt_dlp import YoutubeDL
+from ytdlp_options import parse_ytdlp_options
 
 from pyrogram.filters import regex, user
 from pyrogram.handlers import CallbackQueryHandler, MessageHandler
@@ -299,7 +301,11 @@ class YtDlp(TaskListener):
         args["-fd"] = False
         args["-fu"] = False
         args["-hl"] = False
-        arg_parser(input_list[0].split(" ")[1:], args)
+        try:
+            arg_parser(input_list[0].split(" ")[1:], args)
+        except (ValueError, TypeError) as error:
+            await sendMessage(f"Invalid yt-dlp options: {escape(str(error))}", self.message)
+            return
 
         self.multi = int(args["-i"]) if args["-i"] else 0
         self.name = args["-n"]
@@ -356,7 +362,14 @@ class YtDlp(TaskListener):
 
         self.tag, _ = self._get_tag(input_list)
 
-        opt = args["-opt"] or self.user_dict.get("YT_DLP_OPTIONS") or config_dict.get("YT_DLP_OPTIONS", "")
+        try:
+            opt = parse_ytdlp_options(
+                args["-opt"] or self.user_dict.get("yt_opt")
+                or self.user_dict.get("YT_DLP_OPTIONS") or config_dict.get("YT_DLP_OPTIONS", "")
+            )
+        except (ValueError, TypeError) as error:
+            await sendMessage(f"Invalid yt-dlp options: {escape(str(error))}", self.message)
+            return
 
         if not self.link and (reply_to := self.message.reply_to_message):
             self.link = reply_to.text.split("\n", 1)[0].strip()
@@ -385,36 +398,13 @@ class YtDlp(TaskListener):
             "cookiefile": "cookies.txt",
             **get_yt_runtime_options(),
         }
-        if opt:
-            if isinstance(opt, str):
-                yt_opt = opt.split("|")
-                for ytopt in yt_opt:
-                    key, value = map(str.strip, ytopt.split(":", 1))
-                    if value.startswith("^"):
-                        if "." in value or value == "^inf":
-                            value = float(value.split("^")[1])
-                        else:
-                            value = int(value.split("^")[1])
-                    elif value.lower() == "true":
-                        value = True
-                    elif value.lower() == "false":
-                        value = False
-                    elif value.startswith(("{", "[", "(")) and value.endswith(("}", "]", ")")):
-                        value = eval(value)
-                    if key in ("postprocessors", "download_ranges"):
-                        continue
-                    if key == "format" and not self.select:
-                        self.qual = value
-                        continue
-                    options[key] = value
-            elif isinstance(opt, dict):
-                for key, value in opt.items():
-                    if key in ("postprocessors", "download_ranges"):
-                        continue
-                    if key == "format" and not self.select:
-                        self.qual = value
-                        continue
-                    options[key] = value
+        for key, value in opt.items():
+            if key in ("postprocessors", "download_ranges"):
+                continue
+            if key == "format" and not self.select:
+                self.qual = value
+                continue
+            options[key] = value
 
         options["playlist_items"] = "0"
 
@@ -535,10 +525,7 @@ def arg_parser(items, args):
                     opt_str += items[i]
                     i += 1
                 if opt_str:
-                    try:
-                        args[key] = eval(opt_str)
-                    except Exception:
-                        args[key] = opt_str
+                    args[key] = parse_ytdlp_options(opt_str)
             else:
                 i += 1
                 if i < len(items) and not items[i].startswith("-"):

@@ -370,45 +370,18 @@ class YoutubeDLHelper:
             await self._listener.onDownloadError("Download Cancelled by User!")
 
     def _set_options(self, options):
-        if isinstance(options, str):
-            options_list = options.split("|")
-            options = {}
-            for opt in options_list:
-                key, value = map(str.strip, opt.split(":", 1))
-                if value.startswith("^"):
-                    if "." in value or value == "^inf":
-                        value = float(value.split("^")[1])
-                    else:
-                        value = int(value.split("^")[1])
-                elif value.lower() == "true":
-                    value = True
-                elif value.lower() == "false":
-                    value = False
-                elif value.startswith(("{", "[", "(")) and value.endswith(("}", "]", ")")):
-                    value = eval(value)
-                if key == "postprocessors":
-                    if isinstance(value, list):
-                        self.opts[key].extend(tuple(value))
-                    elif isinstance(value, dict):
-                        self.opts[key].append(value)
-                elif key == "download_ranges":
-                    if isinstance(value, list):
-                        self.opts[key] = lambda info, ytdl: value
-                else:
-                    if key == "writethumbnail" and value is True:
-                        self.keep_thumb = True
-                    self.opts[key] = value
-        elif isinstance(options, dict):
-            for key, value in options.items():
-                if key == "postprocessors":
-                    if isinstance(value, list):
-                        self.opts[key].extend(tuple(value))
-                    elif isinstance(value, dict):
-                        self.opts[key].append(value)
-                elif key == "download_ranges":
-                    if isinstance(value, list):
-                        self.opts[key] = lambda info, ytdl: value
-                else:
-                    if key == "writethumbnail" and value is True:
-                        self.keep_thumb = True
-                    self.opts[key] = value
+        from ytdlp_options import parse_ytdlp_options
+
+        for key, value in parse_ytdlp_options(options).items():
+            if key == "postprocessors":
+                if isinstance(value, (list, tuple)):
+                    self.opts[key].extend(value)
+                elif isinstance(value, dict):
+                    self.opts[key].append(value)
+            elif key == "download_ranges":
+                if isinstance(value, list):
+                    self.opts[key] = lambda info, ytdl, ranges=value: ranges
+            else:
+                if key == "writethumbnail" and value is True:
+                    self.keep_thumb = True
+                self.opts[key] = value

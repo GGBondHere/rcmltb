@@ -1,9 +1,9 @@
 from logging import getLogger, ERROR
-from pickle import load as pload
 from os import path as ospath, listdir
 from re import search as re_search
 from urllib.parse import parse_qs, urlparse
 from random import randrange
+from drive_credentials import read_drive_credentials
 from bot.helper.ext_utils.bot_utils import is_gdrive_id
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -80,8 +80,7 @@ class GoogleDriveHelper:
             )
         elif ospath.exists(self.token_path):
             LOGGER.info(f"Authorize with {self.token_path}")
-            with open(self.token_path, "rb") as f:
-                credentials = pload(f)
+            credentials = read_drive_credentials(self.token_path)
         else:
             LOGGER.error("token.pickle not found!")
         return build("drive", "v3", credentials=credentials, cache_discovery=False)

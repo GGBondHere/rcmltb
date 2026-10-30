@@ -3,7 +3,12 @@ from time import sleep
 from qbittorrentapi import NotFound404Error, Client as qbClient
 from aria2p import API as ariaAPI, Client as ariaClient
 from flask import Flask, request
+from flask import abort
+from html import escape
+from urllib.parse import urlencode
+from werkzeug.exceptions import HTTPException
 from qbitweb.nodes import make_tree
+from selection_auth import verify_selection
 
 app = Flask(__name__)
 
@@ -623,6 +628,7 @@ section span{
     </header>
     <section>
       <form action="{form_url}">
+        <input type="hidden" name="token" value="{auth_token}">
         <div>
           <label for="pin_code">Pin Code :</label>
           <input
@@ -690,19 +696,24 @@ def re_verfiy(paused, resumed, client, hash_id):
     return True
 
 
+def _authorize_selection(id_, require_pin=True):
+    token = request.args.get("token")
+    pin = request.args.get("pin_code")
+    if (
+        len(request.args.getlist("token")) != 1
+        or len(request.args.getlist("pin_code")) > 1
+        or (require_pin and pin is None)
+        or not verify_selection(id_, token, pin)
+    ):
+        abort(403)
+    return token, pin
+
+
 @app.route("/app/files/<string:id_>", methods=["GET"])
 def list_torrent_contents(id_):
-    if "pin_code" not in request.args.keys():
-        return code_page.replace("{form_url}", f"/app/files/{id_}")
-
-    pincode = ""
-    for nbr in id_:
-        if nbr.isdigit():
-            pincode += str(nbr)
-        if len(pincode) == 4:
-            break
-    if request.args["pin_code"] != pincode:
-        return "<h1>Incorrect pin code</h1>"
+    token, pincode = _authorize_selection(id_, require_pin=False)
+    if pincode is None:
+        return code_page.replace("{form_url}", f"/app/files/{id_}").replace("{auth_token}", token)
 
     if len(id_) > 20:
         client = qbClient(host="localhost", port="8090")
@@ -713,12 +724,13 @@ def list_torrent_contents(id_):
         res = aria2.client.get_files(id_)
         cont = make_tree(res, True)
     return page.replace("{My_content}", cont[0]).replace(
-        "{form_url}", f"/app/files/{id_}?pin_code={pincode}"
+        "{form_url}", escape(f"/app/files/{id_}?{urlencode({'token': token, 'pin_code': pincode})}", quote=True)
     )
 
 
 @app.route("/app/files/<string:id_>", methods=["POST"])
 def set_priority(id_):
+    _authorize_selection(id_)
     data = dict(request.form)
 
     resume = ""
@@ -778,10 +790,19 @@ def homepage():
 
 @app.errorhandler(Exception)
 def page_not_found(e):
+    if isinstance(e, HTTPException):
+        return e
     return (
-        f"<h1>404: Torrent not found! Mostly wrong input. <br><br>Error: {e}</h2>",
+        f"<h1>404: Torrent not found! Mostly wrong input. <br><br>Error: {escape(str(e))}</h2>",
         404,
     )
+
+
+@app.after_request
+def selection_headers(response):
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 if __name__ == "__main__":

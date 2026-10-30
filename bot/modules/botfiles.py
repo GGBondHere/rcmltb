@@ -7,6 +7,8 @@ from os import environ, getcwd, makedirs, path as ospath, remove as osremove
 from dotenv import load_dotenv
 from subprocess import run as srun
 from shutil import copyfile
+from tempfile import TemporaryDirectory
+from drive_credentials import MAX_TOKEN_SIZE, read_drive_credentials, write_drive_credentials
 from bot import (
     GLOBAL_EXTENSION_FILTER,
     IS_PREMIUM_USER,
@@ -678,14 +680,17 @@ async def set_config_listener(
             path = f"{getcwd()}/tokens/"
             makedirs(path, exist_ok=True)
             des_dir = f"{path}{user_id}.pickle"
-            saved_path = await client.download_media(response, file_name=des_dir)
-            if not _ensure_target_file(saved_path, des_dir):
-                await sendMessage(
-                    "❌ <b>Failed to save token.pickle.</b>\n"
-                    "Check disk space and write permissions.",
-                    message,
-                )
+            if (getattr(response.document, "file_size", 0) or 0) > MAX_TOKEN_SIZE:
+                await sendMessage("❌ <b>Google Drive token is too large.</b>", message)
                 return
+            with TemporaryDirectory(prefix=".token-upload-", dir=path) as temporary:
+                temporary_path = f"{temporary}/token.pickle"
+                saved_path = await client.download_media(response, file_name=temporary_path)
+                if not _ensure_target_file(saved_path, temporary_path):
+                    await sendMessage("❌ <b>Failed to save token.pickle.</b>", message)
+                    return
+                credentials = read_drive_credentials(temporary_path)
+                write_drive_credentials(credentials, des_dir)
             if database.enabled:
                 await database.update_user_doc(user_id, "token_pickle", des_dir)
             await sendMessage("✅ <b>token.pickle uploaded successfully.</b>", message)
