@@ -83,6 +83,8 @@
   "helpers.text.type": "\n\n<b>Type: </b>{value1}",
   "helpers.task.mirror_initiator": "\n\n<b>cc: </b>{value1}",
   "helpers.task.saved_to": "\n\n<b>Saved to: </b><code>{path}</code>",
+  "helpers.task.cloud_link_unavailable": "\n\n<i>Saved successfully, but a cloud link could not be generated. Find the item in your cloud storage using its name or save location.</i>",
+  "helpers.task.cloud_link_access": "\n\n<i>Opening the cloud link depends on the cloud storage's sharing settings and access permissions. A link access failure does not mean the upload failed.</i>",
   "helpers.task.local_size": "<b>Size: </b>{value1}\n",
   "helpers.task.local_initiator": "<b>cc: </b>{value1}\n\n",
   "helpers.text.corrupted_files": "\n<b>Corrupted Files: </b>{value1}",

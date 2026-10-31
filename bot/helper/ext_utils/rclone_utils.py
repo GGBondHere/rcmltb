@@ -495,23 +495,29 @@ async def create_next_buttons(
 
 
 async def get_id(rclone_path, config_path, name, mime_type):
-    if mime_type == "Folder":
-        rclone_path = rclone_path.rsplit("/", 1)[0]
+    if mime_type != "Folder":
+        rclone_path = f"{rclone_path.rstrip('/')}/{name}"
     cmd = [
         "rclone",
         "lsjson",
         f"--config={config_path}",
-        "--fast-list",
+        "--stat",
         "--no-mimetype",
         "--no-modtime",
         rclone_path,
     ]
 
     res, err, code = await cmd_exec(cmd)
-    id = ""
-    if code == 0:
-        id = next((d["ID"] for d in jsonloads(res) if d["Path"] == name), "err")
-    else:
+    if code != 0:
         LOGGER.error(f"Error while getting link. Error: {err}")
-        id = "err"
-    return id
+        return ""
+    try:
+        item = jsonloads(res)
+    except (TypeError, ValueError):
+        LOGGER.error("Invalid JSON while getting the uploaded item's ID")
+        return ""
+    item_id = item.get("ID") if isinstance(item, dict) else None
+    if isinstance(item_id, str) and item_id and item_id != "err":
+        return item_id
+    LOGGER.warning("The uploaded item's ID is unavailable")
+    return ""

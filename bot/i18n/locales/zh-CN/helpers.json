@@ -83,6 +83,8 @@
   "helpers.text.type": "\n\n<b>类型：</b>{value1}",
   "helpers.task.mirror_initiator": "\n\n<b>发起者：</b>{value1}",
   "helpers.task.saved_to": "\n\n<b>保存位置：</b><code>{path}</code>",
+  "helpers.task.cloud_link_unavailable": "\n\n<i>已成功保存，但未能生成网盘链接。请按名称或保存位置在网盘中查看。</i>",
+  "helpers.task.cloud_link_access": "\n\n<i>网盘链接能否打开取决于网盘的分享设置和访问权限；无法打开不代表上传失败。</i>",
   "helpers.task.local_size": "<b>大小：</b>{value1}\n",
   "helpers.task.local_initiator": "<b>发起者：</b>{value1}\n\n",
   "helpers.text.corrupted_files": "\n<b>损坏文件数：</b>{value1}",

@@ -413,6 +413,55 @@ class TaskListener(TaskConfig):
                 rcm = RcloneMirror(path, up_name, size, self.user_id, self)
                 await rcm.mirror()
 
+    async def _get_cloud_link(
+        self, rclone_config, rclone_path, name, mime_type, is_gdrive, link=None
+    ):
+        from urllib.parse import quote, urlsplit
+
+        try:
+            if is_gdrive and rclone_path:
+                file_id = await get_id(rclone_path, rclone_config, name, mime_type)
+                if not file_id or file_id == "err":
+                    return ""
+                file_id = quote(file_id, safe="")
+                if mime_type == "Folder":
+                    link = f"https://drive.google.com/drive/folders/{file_id}"
+                else:
+                    link = f"https://drive.google.com/uc?id={file_id}&export=download"
+            elif not is_gdrive and rclone_path:
+                target = (
+                    rclone_path if mime_type == "Folder"
+                    else f"{rclone_path.rstrip('/')}/{name}"
+                )
+                out, err, code = await cmd_exec(
+                    ["rclone", "link", f"--config={rclone_config}", target]
+                )
+                if code != 0:
+                    LOGGER.warning("Could not generate the cloud link: %s", err)
+                    return ""
+                # rclone may print informational lines before the final URL.
+                link = out.strip().splitlines()[-1] if out.strip() else ""
+
+            if not isinstance(link, str):
+                return ""
+            link = link.strip()
+            parsed = urlsplit(link)
+            # Accessing port also validates malformed or out-of-range ports.
+            parsed.port
+            if (
+                parsed.scheme in ("http", "https") and parsed.hostname
+                and not parsed.username and not parsed.password
+                and not any(
+                    char.isspace() or ord(char) < 32 or ord(char) == 127
+                    or char in '<>"\\' for char in link
+                )
+            ):
+                return link
+            LOGGER.warning("The cloud link is empty or is not a valid HTTP(S) URL")
+        except Exception as error:
+            LOGGER.warning("Could not generate the cloud link: %s", error)
+        return ""
+
     async def _send_rclone_completion(self, msg, rclone_path, reply_markup):
         if not rclone_path:
             await sendMessage(msg, self.message, reply_markup)
@@ -460,33 +509,16 @@ class TaskListener(TaskConfig):
         msg += tr('helpers.text.total_size', value1=size)
         msg += tr('helpers.text.cc', value1=raw(self.tag))
 
-        if is_gdrive:
-            link = ""
-            id = await get_id(rclone_path, rc_config, folder_name, mime_type="Folder")
-            if id:
-                link = f"https://drive.google.com/drive/folders/{id}"
-            if link:
-                button.url_buildbutton(tr('helpers.text.cloud_link', _html=False), link)
-            else:
-                button.url_buildbutton(
-                    tr('helpers.text.cloud_link', _html=False), "https://drive.google.com/uc?id=err"
-                )
-        else:
-            cmd = [
-                "rclone",
-                "link",
-                f"--config={rc_config}",
-                rclone_path,
-            ]
-            out, err, rc = await cmd_exec(cmd)
-            url = out.strip()
-            if rc == 0:
-                button.url_buildbutton(tr('helpers.text.cloud_link', _html=False), url)
-            else:
-                LOGGER.error(f"Error while getting link. Error: {err}")
-                button.url_buildbutton(tr('helpers.text.cloud_link', _html=False), "http://www.example.com")
+        link = await self._get_cloud_link(
+            rc_config, rclone_path, folder_name, "Folder", is_gdrive
+        )
+        if link:
+            button.url_buildbutton(tr('helpers.text.cloud_link', _html=False), link)
+        msg += tr("helpers.task.cloud_link_access" if link else "helpers.task.cloud_link_unavailable")
 
-        await self._send_rclone_completion(msg, rclone_path, button.build_menu(1))
+        await self._send_rclone_completion(
+            msg, rclone_path, button.build_menu(1) if link else None
+        )
 
         await clean_download(self.dir)
         if count == 0:
@@ -561,32 +593,12 @@ class TaskListener(TaskConfig):
 
             buttons = ButtonMaker()
 
-            if is_gdrive:
-                if rclone_path:
-                    id = await get_id(rclone_path, rclone_config, name, mime_type)
-                    if id:
-                        if mime_type == "Folder":
-                            link = f"https://drive.google.com/drive/folders/{id}"
-                        else:
-                            link = f"https://drive.google.com/uc?id={id}&export=download"
-                else:
-                    link = link
-
-                if link:
-                    buttons.url_buildbutton(tr('helpers.text.cloud_link', _html=False), link)
-                else:
-                    buttons.url_buildbutton(
-                        tr('helpers.text.cloud_link', _html=False), "https://drive.google.com/uc?id=err"
-                    )
-            else:
-                cmd = ["rclone", "link", f"--config={rclone_config}", rclone_path]
-                res, _, code = await cmd_exec(cmd)
-                if code == 0:
-                    buttons.url_buildbutton(tr('helpers.text.cloud_link', _html=False), res)
-                else:
-                    buttons.url_buildbutton(
-                        tr('helpers.text.cloud_link', _html=False), "http://www.example.com/uc?id=err"
-                    )
+            link = await self._get_cloud_link(
+                rclone_config, rclone_path, name, mime_type, is_gdrive, link
+            )
+            if link:
+                buttons.url_buildbutton(tr('helpers.text.cloud_link', _html=False), link)
+            has_buttons = bool(link)
 
             if is_gdrive or not rclone_path and dir_id:
                 GD_INDEX_URL = ""
@@ -599,6 +611,7 @@ class TaskListener(TaskConfig):
                 elif config_dict["GD_INDEX_URL"]:
                     GD_INDEX_URL = config_dict["GD_INDEX_URL"]
                 if GD_INDEX_URL:
+                    has_buttons = True
                     share_url = f"{GD_INDEX_URL}findpath?id={dir_id}"
                     buttons.url_buildbutton(tr('helpers.text.index_link', _html=False), share_url)
                     if mime_type.startswith(("image", "video", "audio")):
@@ -616,9 +629,13 @@ class TaskListener(TaskConfig):
                 if mime_type == "Folder":
                     share_url += "/"
                 buttons.url_buildbutton(tr('helpers.text.rclone_link', _html=False), share_url)
+                has_buttons = True
 
             msg += tr('helpers.task.mirror_initiator', value1=raw(self.tag))
-            await self._send_rclone_completion(msg, rclone_path, buttons.build_menu(1))
+            msg += tr("helpers.task.cloud_link_access" if link else "helpers.task.cloud_link_unavailable")
+            await self._send_rclone_completion(
+                msg, rclone_path, buttons.build_menu(1) if has_buttons else None
+            )
 
             if self.seed:
                 if getattr(self, "multi_remote_upload", False):
