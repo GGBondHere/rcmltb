@@ -1,5 +1,6 @@
 from bot.i18n import tr, raw
-from asyncio import TimeoutError, create_subprocess_exec, create_subprocess_shell
+from asyncio import Lock, TimeoutError, create_subprocess_exec, create_subprocess_shell
+from re import fullmatch
 from pyrogram.filters import regex, command
 from pyrogram import filters
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
@@ -37,6 +38,13 @@ from bot.modules.torr_search import initiate_search_tools
 
 START = 0
 STATE = "view"
+LIST_CONFIG_KEYS = {"ALLOWED_CHATS", "SUDO_USERS", "LEECH_LOG", "EXTENSION_FILTER"}
+LIST_CONFIG_LOCK = Lock()
+RESTART_CONFIG_KEYS = {
+    "PARALLEL_TASKS", "USER_SESSION_STRING", "AUTO_MIRROR", "CMD_INDEX",
+    "TELEGRAM_API_HASH", "TELEGRAM_API_ID", "BOT_TOKEN", "OWNER_ID",
+    "DOWNLOAD_DIR", "DATABASE_URL",
+}
 default_values = {
     "AUTO_DELETE_MESSAGE_DURATION": 30,
     "DOWNLOAD_DIR": "/usr/src/app/downloads/",
@@ -46,6 +54,63 @@ default_values = {
     "SEARCH_LIMIT": 0,
     "BOT_UI_LANGUAGE": "zh-CN",
 }
+
+
+def config_change_notice(key):
+    if key in {"ALLOWED_CHATS", "SUDO_USERS"}:
+        # Only the local backend currently refreshes authorization on save.
+        if not (database.enabled and getattr(database, "is_local", False)):
+            return "settings.restart"
+    elif key in {"RC_INDEX_USER", "RC_INDEX_PASS", "RC_INDEX_PORT"}:
+        return "settings.serve_new_config"
+    elif key in RESTART_CONFIG_KEYS:
+        return "settings.restart"
+    return None
+
+
+def list_config_items(key, value):
+    items = str(value or "").split()
+    if key == "EXTENSION_FILTER":
+        items = [item.lstrip(".").lower() for item in items]
+        if any(not item for item in items):
+            raise ValueError("Empty extension")
+    else:
+        if any(fullmatch(r"-?[0-9]+", item) is None for item in items):
+            raise ValueError("IDs must contain decimal digits")
+        ids = [int(item) for item in items]
+        if any(uid == 0 or not -(1 << 63) <= uid < (1 << 63) for uid in ids):
+            raise ValueError("Invalid Telegram ID")
+        if key == "SUDO_USERS" and any(uid < 0 for uid in ids):
+            raise ValueError("Sudo IDs must be positive")
+        items = [str(uid) for uid in ids]
+    return list(dict.fromkeys(items))
+
+
+async def save_list_config(key, text, operation="replace"):
+    if key not in LIST_CONFIG_KEYS or operation not in {"replace", "add", "remove"}:
+        raise ValueError("Invalid list operation")
+    incoming = list_config_items(key, text)
+    if operation != "replace" and not incoming:
+        raise ValueError("No entries supplied")
+    async with LIST_CONFIG_LOCK:
+        if operation == "replace":
+            items = incoming
+        else:
+            current = list_config_items(key, config_dict[key])
+            if operation == "add":
+                items = list(dict.fromkeys(current + incoming))
+            else:
+                removed = set(incoming)
+                items = [item for item in current if item not in removed]
+        value = " ".join(items)
+        if database.enabled:
+            await database.update_config({key: value})
+        Config.set(key, value)
+        config_dict[key] = value
+        if key == "LEECH_LOG":
+            leech_log[:] = [int(item) for item in items]
+        elif key == "EXTENSION_FILTER":
+            GLOBAL_EXTENSION_FILTER[:] = [".aria2", "!qB", *items]
 
 
 async def handle_ownerset(client, message):
@@ -137,7 +202,11 @@ async def update_buttons(message, key, edit_type=None):
         buttons.cb_buildbutton("简体中文", "ownersetmenu^language^zh-CN")
         buttons.cb_buildbutton("English", "ownersetmenu^language^en")
     if edit_type == "editenv":
-        buttons.cb_buildbutton(tr("settings.send", _html=False), f"ownersetmenu^send^env^{key}")
+        label = "settings.list.replace" if key in LIST_CONFIG_KEYS else "settings.send"
+        buttons.cb_buildbutton(tr(label, _html=False), f"ownersetmenu^send^env^{key}")
+        if key in LIST_CONFIG_KEYS:
+            buttons.cb_buildbutton(tr("settings.list.add", _html=False), f"ownersetmenu^send^env^{key}^add")
+            buttons.cb_buildbutton(tr("settings.list.remove", _html=False), f"ownersetmenu^send^env^{key}^remove")
         if key not in ["TELEGRAM_HASH", "TELEGRAM_API", "OWNER_ID", "BOT_TOKEN"]:
             buttons.cb_buildbutton(tr("settings.default", _html=False), f"ownersetmenu^env^resetenv^{key}")
         buttons.cb_buildbutton(tr("settings.back", _html=False), "ownersetmenu^back^env", "footer")
@@ -164,8 +233,7 @@ async def ownerset_callback(client, callback_query):
     message = query.message
     user_id = query.from_user.id
     from bot import OWNER_ID
-    language_action = data[1] == "language" or (len(data) > 3 and data[3] == "BOT_UI_LANGUAGE")
-    if language_action and user_id != OWNER_ID:
+    if user_id != OWNER_ID:
         await query.answer(tr("common.access_denied", _html=False), show_alert=True)
         return
 
@@ -185,26 +253,9 @@ async def ownerset_callback(client, callback_query):
         await edit_menus(message, "env")
     elif data[1] == "env":
         if data[2] == "editenv" and STATE == "edit":
-            if data[3] in [
-                "PARALLEL_TASKS",
-                "SUDO_USERS",
-                "RC_INDEX_USER",
-                "RC_INDEX_PASS",
-                "RC_INDEX_URL",
-                "RC_INDEX_PORT",
-                "ALLOWED_CHATS",
-                "USER_SESSION_STRING",
-                "AUTO_MIRROR",
-                "CMD_INDEX",
-                "TELEGRAM_API_HASH",
-                "TELEGRAM_API_ID",
-                "BOT_TOKEN",
-                "OWNER_ID",
-                "DOWNLOAD_DIR",
-                "DATABASE_URL",
-            ]:
+            if notice := config_change_notice(data[3]):
                 await query.answer(
-                    text=tr("settings.restart", _html=False), show_alert=True
+                    text=tr(notice, _html=False), show_alert=True
                 )
             else:
                 await query.answer()
@@ -222,6 +273,11 @@ async def ownerset_callback(client, callback_query):
                 value = tr("settings.none", _html=False)
             await query.answer(text=f"{value}", show_alert=True)
         elif data[2] == "resetenv":
+            if data[3] in LIST_CONFIG_KEYS:
+                await save_list_config(data[3], "")
+                await query.answer(tr("settings.reset", _html=False))
+                await edit_menus(message, "env")
+                return
             value = ""
             if data[3] in default_values:
                 value = default_values[data[3]]
@@ -234,9 +290,6 @@ async def ownerset_callback(client, callback_query):
             elif data[3] == "DEFAULT_OWNER_REMOTE":
                 update_rclone_data("MIRROR_SELECT_REMOTE", value, user_id)
                 update_rclone_data("MIRROR_SELECT_BASE_DIR", value, user_id)
-            elif data[3] == "EXTENSION_FILTER":
-                GLOBAL_EXTENSION_FILTER.clear()
-                GLOBAL_EXTENSION_FILTER.extend([".aria2", "!qB"])
             elif data[3] == "TORRENT_TIMEOUT":
                 downloads = await TorrentManager.aria2.tellActive()
                 for download in downloads:
@@ -360,7 +413,13 @@ async def ownerset_callback(client, callback_query):
         await edit_menus(message, data[2])
     elif data[1] == "send":
         if data[2] == "env":
-            await start_env_listener(client, query, user_id, data[3])
+            operation = data[4] if len(data) == 5 else "replace"
+            if operation not in {"replace", "add", "remove"} or (
+                operation != "replace" and data[3] not in LIST_CONFIG_KEYS
+            ):
+                await query.answer(tr("settings.value_missing", _html=False), show_alert=True)
+                return
+            await start_env_listener(client, query, user_id, data[3], operation)
         elif data[2] == "aria":
             await start_aria_listener(client, query, user_id, data[3])
         else:
@@ -379,10 +438,19 @@ async def ownerset_callback(client, callback_query):
         await message.delete()
 
 
-async def start_env_listener(client, query, user_id, key):
+async def start_env_listener(client, query, user_id, key, operation="replace"):
     message = query.message
+    if key in LIST_CONFIG_KEYS:
+        hint_key = (
+            "settings.list.extensions_hint" if key == "EXTENSION_FILTER"
+            else "settings.list.users_hint" if key == "SUDO_USERS"
+            else "settings.list.ids_hint"
+        )
+        prompt = tr("settings.list.prompt_" + operation, config_key=key, entry_hint=tr(hint_key))
+    else:
+        prompt = tr("settings.value_prompt", _html=False)
     question = await sendMessage(
-        tr("settings.value_prompt", _html=False),
+        prompt,
         message,
     )
     try:
@@ -399,6 +467,14 @@ async def start_env_listener(client, query, user_id, key):
                     await client.listen.Cancel(filters.user(user_id))
                 else:
                     value = response.text.strip()
+                    if key in LIST_CONFIG_KEYS:
+                        try:
+                            await save_list_config(key, value, operation)
+                        except (TypeError, ValueError):
+                            await sendMessage(tr("settings.list.invalid", config_key=key), message)
+                            return
+                        await edit_menus(message, "env")
+                        return
                     if key == "BOT_UI_LANGUAGE":
                         try:
                             value = Config._convert(key, value)
@@ -445,11 +521,6 @@ async def start_env_listener(client, query, user_id, key):
                             value = f"{value}/"
                     elif key == "LEECH_SPLIT_SIZE":
                         value = min(int(value), TG_MAX_SPLIT_SIZE)
-                    elif key == "LEECH_LOG":
-                        leech_log.clear()
-                        aid = value.split()
-                        for id_ in aid:
-                            leech_log.append(int(id_.strip()))
                     elif key == "QB_SERVER_PORT":
                         value = int(value)
                         if config_dict["BASE_URL"]:
@@ -461,14 +532,6 @@ async def start_env_listener(client, query, user_id, key):
                             await create_subprocess_shell(
                                 f"gunicorn qbitweb.wserver:app --bind 0.0.0.0:{value} --worker-class gevent"
                             )
-                    elif key == "EXTENSION_FILTER":
-                        fx = value.split()
-                        GLOBAL_EXTENSION_FILTER.clear()
-                        GLOBAL_EXTENSION_FILTER.extend([".aria2", "!qB"])
-                        for x in fx:
-                            if x.strip().startswith("."):
-                                x = x.lstrip(".")
-                            GLOBAL_EXTENSION_FILTER.append(x.strip().lower())
                     config_dict[key] = value
                     if hasattr(Config, key):
                         Config.set(key, value)
