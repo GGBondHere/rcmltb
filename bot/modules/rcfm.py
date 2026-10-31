@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from pyrogram.filters import regex
 from pyrogram import filters
 from pyrogram.handlers import CallbackQueryHandler, MessageHandler
@@ -39,7 +40,7 @@ async def handle_myfiles(client, message):
         if config_dict["MULTI_RCLONE_CONFIG"] or await CustomFilters.sudo_filter("", message):
             await list_remotes(message, menu_type=Menus.MYFILES)
         else:
-            await sendMessage("🚫 <b>Not allowed to use</b>", message)
+            await sendMessage(tr('commands.menu.denied'), message)
 
 
 async def myfiles_callback(client, callback_query):
@@ -54,7 +55,7 @@ async def myfiles_callback(client, callback_query):
     is_folder = False
 
     if int(cmd[-1]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours', _html=False), show_alert=True)
         return
     if cmd[1] == "remote":
         update_rclone_data("MYFILES_BASE_DIR", "", user_id)  # Reset Dir
@@ -151,8 +152,8 @@ async def next_page_myfiles(client, callback_query):
     prev_offset = next_offset - 10
 
     buttons = ButtonMaker()
-    buttons.cb_buildbutton(f"⚙️ Folder Options", f"myfilesmenu^folder_action^{user_id}")
-    buttons.cb_buildbutton("🔍 Search", f"myfilesmenu^search^{user_id}")
+    buttons.cb_buildbutton(tr('commands.files.folder_options', _html=False), f"myfilesmenu^folder_action^{user_id}")
+    buttons.cb_buildbutton(tr('commands.files.search', _html=False), f"myfilesmenu^search^{user_id}")
 
     next_info, _next_offset = await run_sync_to_async(
         rcloneListNextPage, info, next_offset
@@ -182,7 +183,7 @@ async def next_page_myfiles(client, callback_query):
 
     remote = get_rclone_data("MYFILES_REMOTE", user_id)
     base_dir = get_rclone_data("MYFILES_BASE_DIR", user_id)
-    msg = f"📁 <b>Your cloud files are listed below</b>\n\n<b>Path:</b><code>{remote}:{base_dir}</code>"
+    msg = tr('commands.files.list', remote=remote, base_dir=base_dir)
     await editMessage(msg, message, reply_markup=buttons.build_menu(1))
 
 

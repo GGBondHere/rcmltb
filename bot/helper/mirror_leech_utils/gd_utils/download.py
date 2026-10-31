@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from logging import getLogger
 from os import makedirs, path as ospath
 from io import FileIO
@@ -46,7 +47,7 @@ class gdDownload(GoogleDriveHelper):
                 err = err.last_attempt.exception()
             err = str(err).replace(">", "").replace("<", "")
             if "downloadQuotaExceeded" in err:
-                err = "Download Quota Exceeded."
+                err = tr('helpers.text.download_quota_exceeded', _html=False)
             elif "File not found" in err:
                 if not self.alt_auth and self.use_sa:
                     self.alt_auth = True
@@ -54,7 +55,7 @@ class gdDownload(GoogleDriveHelper):
                     LOGGER.error("File not found. Trying with token.pickle...")
                     self._updater.cancel()
                     return self.download()
-                err = "File not found!"
+                err = tr('helpers.task.drive_download_not_found', _html=False)
             run_async_to_sync(self.listener.onDownloadError, err)
             self.is_cancelled = True
         finally:

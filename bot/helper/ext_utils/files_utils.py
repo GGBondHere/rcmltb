@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import create_subprocess_exec
 from asyncio.subprocess import PIPE
 from re import (
@@ -170,7 +171,7 @@ def get_base_name(orig_path: str):
     if extension != "":
         return re_split(f"{extension}$", orig_path, maxsplit=1, flags=I)[0]
     else:
-        raise NotSupportedExtractionArchive("File format not supported for extraction")
+        raise NotSupportedExtractionArchive(tr('helpers.text.file_format_not_supported_for_extraction', _html=False))
 
 
 async def get_path_size(path: str):

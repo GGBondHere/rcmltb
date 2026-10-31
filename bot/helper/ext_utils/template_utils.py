@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from datetime import datetime
 
 
@@ -5,7 +6,7 @@ def join_upload_path(base_dir, subdir):
     # Templates may add folders, but must not escape the selected destination.
     subdir = subdir.replace("\\", "/")
     if ".." in subdir.split("/"):
-        raise ValueError("Upload path template must stay inside the selected directory.")
+        raise ValueError(tr('helpers.text.upload_path_template_must_stay_inside_the_selected_directory', _html=False))
     return "/".join(part for part in (base_dir.rstrip("/"), subdir.strip("/")) if part)
 
 

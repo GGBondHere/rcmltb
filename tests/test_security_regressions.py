@@ -22,6 +22,9 @@ sys.path.insert(0, str(ROOT))
 
 
 def load_functions(relative_path, names, namespace):
+    from source_loader import translation_namespace
+    for key, value in translation_namespace().items():
+        namespace.setdefault(key, value)
     tree = ast.parse((ROOT / relative_path).read_text(encoding="utf-8"))
     functions = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in names]
     exec(compile(ast.Module(body=functions, type_ignores=[]), relative_path, "exec"), namespace)

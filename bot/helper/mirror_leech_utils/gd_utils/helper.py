@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from logging import getLogger, ERROR
 from os import path as ospath, listdir
 from re import search as re_search
@@ -111,7 +112,7 @@ class GoogleDriveHelper:
             regex = r"https:\/\/drive\.google\.com\/(?:drive(.*?)\/folders\/|file(.*?)?\/d\/)([-\w]+)"
             res = re_search(regex, link)
             if res is None:
-                raise IndexError("G-Drive ID not found.")
+                raise IndexError(tr('helpers.text.g_drive_id_not_found', _html=False))
             return res.group(3)
         parsed = urlparse(link)
         return parse_qs(parsed.query)["id"][0]
@@ -239,14 +240,14 @@ class GoogleDriveHelper:
         self.is_cancelled = True
         if self.is_downloading:
             LOGGER.info(f"Cancelling Download: {self.listener.name}")
-            await self.listener.onDownloadError("Download stopped by user!")
+            await self.listener.onDownloadError(tr('helpers.text.download_stopped_by_user', _html=False, _user_id=self.listener.user_id))
         elif self.is_cloning:
             LOGGER.info(f"Cancelling Clone: {self.listener.name}")
             await self.listener.onUploadError(
-                "your clone has been stopped and cloned data has been deleted!"
+                tr('helpers.text.your_clone_has_been_stopped_and_cloned_data_has_been_deleted', _html=False, _user_id=self.listener.user_id)
             )
         elif self.is_uploading:
             LOGGER.info(f"Cancelling Upload: {self.listener.name}")
             await self.listener.onUploadError(
-                "your upload has been stopped and uploaded data has been deleted!"
+                tr('helpers.text.your_upload_has_been_stopped_and_uploaded_data_has_been_deleted', _html=False, _user_id=self.listener.user_id)
             )

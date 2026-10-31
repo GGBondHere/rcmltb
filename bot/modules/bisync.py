@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from pyrogram.filters import command, regex
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from asyncio.subprocess import PIPE, create_subprocess_exec as exec
@@ -72,13 +73,13 @@ async def start_bisync(message, path):
         ]
     process = await exec(*cmd, stdout=PIPE, stderr=PIPE)
     button = ButtonMaker()
-    msg = f"🔄 <b>Syncing:</b> {origin} 🔄 {destination}"
-    button.cb_buildbutton("🛑 Stop", "bisync^stop")
+    msg = tr('commands.sync.progress', origin=origin, destination=destination)
+    button.cb_buildbutton(tr('commands.button.stop', _html=False), "bisync^stop")
     await editMarkup(msg, message, button.build_menu(1))
     return_code = await process.wait()
     if return_code != 0:
         err = await process.stderr.read()
-        msg = f"Error: {err}"
+        msg = tr('commands.error.detail', err=err)
         await sendMessage(msg, message)
     await message.delete()
 

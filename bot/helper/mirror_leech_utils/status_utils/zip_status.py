@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from time import time
 from bot import LOGGER, config_dict
 from bot.helper.ext_utils.bot_utils import (
@@ -71,7 +72,7 @@ class ZipStatus:
             self.__listener.suproc.kill()
         else:
             self.__listener.suproc = "cancelled"
-        await self.__listener.onUploadError("archiving stopped by user!")
+        await self.__listener.onUploadError(tr('helpers.text.archiving_stopped_by_user', _html=False, _user_id=self.__listener.user_id))
 
     def type(self):
         return "Zip"

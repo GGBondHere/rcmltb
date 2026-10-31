@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from html import escape as html_escape
 from pyrogram.filters import command, regex
 from pyrogram.handlers import MessageHandler, CallbackQueryHandler
@@ -28,7 +29,7 @@ async def cleanup_callback(client, callback_query):
     user_id = query.from_user.id
 
     if int(cmd[-1]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours', _html=False), show_alert=True)
         return
     if cmd[1] == "remote":
         await rclone_cleanup(message, cmd[2], user_id, tag)
@@ -42,8 +43,8 @@ async def cleanup_callback(client, callback_query):
 
 async def rclone_cleanup(message, remote_name, user_id, tag):
     conf_path = await get_rclone_path(user_id, message)
-    msg = "🧹 <b>Cleaning Remote Trash</b>\n"
-    msg += "\nIt may take some time depending on the number of files"
+    msg = tr('commands.cleanup.progress')
+    msg += tr('commands.cleanup.wait')
     edit_msg = await editMessage(msg, message)
     cmd = ["rclone", "cleanup", f"--config={conf_path}", f"{remote_name}:"]
     process = await exec(*cmd, stdout=PIPE, stderr=PIPE)
@@ -52,10 +53,10 @@ async def rclone_cleanup(message, remote_name, user_id, tag):
     stdout = stdout.decode().strip()
     if return_code != 0:
         err = html_escape(stderr.decode().strip())
-        await sendMessage(f"<b>Error:</b> <code>{err}</code>", message)
+        await sendMessage(tr('commands.error.code', err=raw(err)), message)
     else:
-        msg = "✅ <b>Trash Cleaned</b>\n"
-        msg += f"<b>cc:</b> <code>{tag}</code>\n"
+        msg = tr('commands.cleanup.complete')
+        msg += tr('commands.cleanup.mention', tag=raw(tag))
         await editMessage(msg, edit_msg)
 
 

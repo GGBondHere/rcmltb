@@ -1,4 +1,5 @@
 from random import SystemRandom
+from bot.i18n import ui_error
 from string import ascii_letters, digits
 from bot import status_dict, status_dict_lock, config_dict, LOGGER
 from bot.helper.ext_utils.bot_utils import run_sync_to_async
@@ -14,7 +15,7 @@ async def add_gd_download(link, new_name, path, listener):
         drive.count, link, listener.user_id
     )
     if mime_type is None:
-        await sendMessage(name, listener.message)
+        await sendMessage(ui_error(name), listener.message)
         return
 
     gid = "".join(SystemRandom().choices(ascii_letters + digits, k=12))

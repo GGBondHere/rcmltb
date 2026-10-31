@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from logging import getLogger
 from time import time
 from os import path as ospath
@@ -43,7 +44,7 @@ class gdClone(GoogleDriveHelper):
             file_id = self.getIdFromUrl(self.link)
         except (KeyError, IndexError):
             return (
-                "Google Drive ID could not be found in the provided link",
+                tr('helpers.text.google_drive_id_could_not_be_found_in_the_provided_link', _html=False),
                 None,
                 None,
                 None,
@@ -70,7 +71,7 @@ class gdClone(GoogleDriveHelper):
                 size = self.proc_bytes
             else:
                 file = self._copyFile(meta.get("id"), self.upDest)
-                msg += f'<b>Name: </b><code>{file.get("name")}</code>'
+                msg += tr('helpers.task.drive_file_name', value1=file.get('name'))
                 durl = self.G_DRIVE_BASE_DOWNLOAD_URL.format(file.get("id"))
                 if mime_type is None:
                     mime_type = "File"
@@ -89,16 +90,16 @@ class gdClone(GoogleDriveHelper):
                 err = err.last_attempt.exception()
             err = str(err).replace(">", "").replace("<", "")
             if "User rate limit exceeded" in err:
-                msg = "User rate limit exceeded."
+                msg = tr('helpers.text.user_rate_limit_exceeded', _html=False)
             elif "File not found" in err:
                 if not self.alt_auth and self.use_sa:
                     self.alt_auth = True
                     self.use_sa = False
                     LOGGER.error("File not found. Trying with token.pickle...")
                     return self.clone()
-                msg = "File not found."
+                msg = tr('helpers.text.file_not_found', _html=False)
             else:
-                msg = f"Error.\n{err}"
+                msg = tr('helpers.task.drive_error', value1=err, _html=False)
             run_async_to_sync(self.listener.onUploadError, msg)
             return None, None, None, None, None, None
 

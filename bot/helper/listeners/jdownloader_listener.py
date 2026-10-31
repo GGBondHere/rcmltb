@@ -1,6 +1,7 @@
 """JDownloader listener for handling download events."""
 
 from asyncio import sleep
+from bot.i18n import tr
 from bot import LOGGER, status_dict, status_dict_lock
 from bot.core.jdownloader_booter import jdownloader
 
@@ -79,7 +80,7 @@ async def jdownloader_monitor(listener, gid):
                     await jd_listener.on_download_complete()
                     break
                 elif status in ["FAILED", "SKIPPED"]:
-                    await jd_listener.on_download_error(f"Download {status}")
+                    await jd_listener.on_download_error(tr("helpers.task.jd_failed" if status == "FAILED" else "helpers.task.jd_skipped", _user_id=listener.user_id, _html=False))
                     break
             else:
                 # Package not in downloads anymore, check if finished

@@ -72,6 +72,9 @@ qb_listener_lock = Lock()
 
 config_dict = Config.get_all()
 
+from bot.i18n import bind, localized_handler
+bind(config_dict, user_data)
+
 TG_MAX_SPLIT_SIZE = 2097152000
 LEECH_SPLIT_SIZE = Config.LEECH_SPLIT_SIZE
 if LEECH_SPLIT_SIZE == 0:
@@ -96,6 +99,7 @@ class _BotProxy:
 
     def add_handler(self, handler, group=0):
         from bot.core.telegram_manager import TgClient
+        handler = localized_handler(handler)
         if TgClient.bot is not None:
             TgClient.bot.add_handler(handler, group)
         else:

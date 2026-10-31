@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from html import escape
 from asyncio import sleep
 from aiofiles.os import remove as aioremove, path as aiopath
@@ -80,10 +81,10 @@ class TelegramUploader:
                     if config_dict["LEECH_LOG"]:
                         for chat in leech_log:
                             await self.client.send_message(
-                                text=f"<b>📂 Folder: </b> {folder_name}", chat_id=chat)
+                                text=tr('helpers.text.folder', value1=folder_name), chat_id=chat)
                     else:
                         await self.client.send_message(
-                            text=f"<b>📂 Folder: </b> {folder_name}",
+                            text=tr('helpers.text.folder', value1=folder_name),
                             chat_id=self.__sent_msg.chat.id,
                         )
                 self._iteration += 1
@@ -145,12 +146,12 @@ class TelegramUploader:
             await clean_unwanted(self.__path)
         if self.__total_files == 0:
             await self.__listener.onUploadError(
-                "No files to upload. In case you have filled EXTENSION_FILTER, then check if all files have those extensions or not."
+                tr('helpers.text.no_files_to_upload_in_case_you_have_filled_extension_filter_then', _html=False)
             )
             return
         if self.__total_files <= self.__corrupted:
             await self.__listener.onUploadError(
-                "Files Corrupted or unable to upload. Check logs"
+                tr('helpers.text.files_corrupted_or_unable_to_upload_check_logs', _html=False)
             )
             return
         if not config_dict["NO_TASKS_LOGS"]:
@@ -370,7 +371,7 @@ class TelegramUploader:
         if self.__user_session:
             if not self.__listener.isSuperGroup:
                 await self.__listener.onUploadError(
-                    "Use supergroup to leech with user_transmission!"
+                    tr('helpers.text.use_supergroup_to_leech_with_user_transmission', _html=False)
                 )
                 return False
             self.__sent_msg = await app.get_messages(
@@ -489,4 +490,4 @@ class TelegramUploader:
         self.__is_cancelled = True
         if not config_dict["NO_TASKS_LOGS"]:
             LOGGER.info(f"Cancelling Upload: {self.name}")
-        await self.__listener.onUploadError("Your upload has been stopped!")
+        await self.__listener.onUploadError(tr('helpers.text.your_upload_has_been_stopped', _html=False, _user_id=self.__listener.user_id))

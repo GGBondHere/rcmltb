@@ -3,6 +3,7 @@ from pyrogram.handlers import MessageHandler, CallbackQueryHandler
 from time import time
 
 from bot import LOGGER
+from bot.i18n import tr
 from bot.core.telegram_manager import TgClient
 from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.filters import CustomFilters
@@ -21,26 +22,14 @@ async def start(_, message):
 
     buttons = ButtonMaker()
     buttons.url_buildbutton("GitHub", "https://github.com/Sam-Max/rcmltb")
-    buttons.url_buildbutton("Developer", "https://github.com/Sam-Max")
+    buttons.url_buildbutton(tr("core.start.developer", _html=False), "https://github.com/Sam-Max")
     reply_markup = buttons.build_menu(2)
     if CustomFilters.user_filter or CustomFilters.chat_filter:
-        msg = (
-            "🤖 <b>RCMLTB Bot</b>\n\n"
-            "📥 Mirror, Leech, and Transfer files between cloud storage and Telegram.\n\n"
-            "<b>Features:</b>\n"
-            "🔄 Mirror to Google Drive / Rclone remotes\n"
-            "📤 Leech to Telegram\n"
-            "🧲 Torrent / Magnet / Direct link support\n"
-            "🎬 YT-DLP video downloads\n"
-            "📋 Rclone copy / sync / bisync\n"
-
-            "🎥 TMDB search\n\n"
-            "📚 Use /help for available commands."
-        )
+        msg = tr("core.start.welcome")
         await sendMarkup(msg, message, reply_markup)
     else:
         await sendMarkup(
-            "🚫 <b>Access Denied</b>\n\nYou are not authorized. Deploy your own instance.",
+            tr("core.start.unauthorized"),
             message,
             reply_markup,
         )
@@ -49,7 +38,7 @@ async def start(_, message):
 async def restart(_, message):
     from bot import Interval
 
-    restart_msg = await sendMessage("🔄 <b>Restarting...</b>", message)
+    restart_msg = await sendMessage(tr("core.restart.running"), message)
     if Interval:
         for intvl in list(Interval.values()):
             intvl.cancel()
@@ -67,30 +56,30 @@ async def restart(_, message):
 
 async def ping(_, message):
     start_time = int(round(time() * 1000))
-    reply = await sendMessage("🏓 <b>Pong!</b>", message)
+    reply = await sendMessage(tr("core.ping.pong"), message)
     end_time = int(round(time() * 1000))
-    await editMessage(f"<b>Latency:</b> {end_time - start_time} ms", reply)
+    await editMessage(tr("core.ping.latency", milliseconds=end_time - start_time), reply)
 
 
 async def get_ip(_, message):
     stdout, stderr, code = await cmd_exec("curl https://api.ipify.org/", shell=True)
     if code == 0:
-        await message.reply_text(f"<b>Server IP:</b> <code>{stdout.strip()}</code>")
+        await message.reply_text(tr("core.ip.address", address=stdout.strip()))
     else:
-        await message.reply_text(f"<b>Error:</b> {stderr}")
+        await message.reply_text(tr("core.ip.error", detail=stderr))
 
 
 async def get_log(client, message):
     await client.send_document(
         chat_id=message.chat.id,
         document="botlog.txt",
-        caption="📋 <b>Bot Log File</b>",
+        caption=tr("core.logs.caption"),
     )
 
 
 def add_handlers():
     """Register all bot handlers centrally."""
-    bot = TgClient.bot
+    from bot import bot
 
     # Core handlers (from __main__.py)
     bot.add_handler(
@@ -144,6 +133,7 @@ def add_handlers():
         torr_search,
         torr_select,
         user_settings,
+        language,
         ytdlp,
         shell,
         exec,

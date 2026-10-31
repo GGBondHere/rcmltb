@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from time import time
 from asyncio import sleep
 
@@ -43,6 +44,7 @@ async def __onDownloadError(err, tor):
     if not hasattr(download, "client"):
         return
     listener = download.listener()
+    err = tr(err, _user_id=listener.user_id, _html=False)
     await listener.onDownloadError(err)
     await TorrentManager.qbittorrent.torrents.stop(hashes=[ext_hash])
     await sleep(0.3)
@@ -57,7 +59,7 @@ async def __onSeedFinish(tor):
     if not hasattr(download, "client"):
         return
     listener = download.listener()
-    msg = f"Seeding stopped with Ratio: {round(tor.ratio, 3)} and Time: {get_readable_time(tor.seeding_time)}"
+    msg = tr('helpers.text.seeding_stopped_with_ratio_and_time', value1=round(tor.ratio, 3), value2=get_readable_time(tor.seeding_time), _user_id=listener.user_id, _html=False)
     delete_files = getattr(listener, "upload_succeeded", False) and not config_dict["LOCAL_MIRROR"]
     await listener.onUploadError(msg)
     await __remove_torrent(ext_hash, tor.tags, delete_files=delete_files)
@@ -125,7 +127,7 @@ async def __qb_listener():
                             TORRENT_TIMEOUT
                             and time() - tor_info.added_on >= TORRENT_TIMEOUT
                         ):
-                            __onDownloadError("Dead Torrent!", tor_info)
+                            __onDownloadError('helpers.task.qbit_no_sources', tor_info)
                         else:
                             await TorrentManager.qbittorrent.torrents.reannounce(
                                 hashes=[tor_info.hash]
@@ -151,7 +153,7 @@ async def __qb_listener():
                             and time() - QbTorrents[tag]["stalled_time"]
                             >= TORRENT_TIMEOUT
                         ):
-                            __onDownloadError("Dead Torrent!", tor_info)
+                            __onDownloadError('helpers.task.qbit_no_sources', tor_info)
                         else:
                             await TorrentManager.qbittorrent.torrents.reannounce(
                                 hashes=[tor_info.hash]
@@ -162,7 +164,7 @@ async def __qb_listener():
                         )
                     elif state == "error":
                         __onDownloadError(
-                            "No enough space for this torrent on device", tor_info
+                            'helpers.text.no_enough_space_for_this_torrent_on_device', tor_info
                         )
                     elif (
                         tor_info.completion_on != 0

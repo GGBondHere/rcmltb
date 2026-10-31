@@ -1,3 +1,4 @@
+from bot.i18n import tr, ui_error
 from random import SystemRandom
 from string import ascii_letters, digits
 from pyrogram.filters import command, regex
@@ -78,14 +79,14 @@ async def start_sync(message, path, destination, listener):
     return_code = await process.wait()
 
     if return_code == 0:
-        msg = "✅ <b>Sync completed successfully</b>\n\n"
-        msg += "<b>Note:</b>"
-        msg += "\n1.Use dedupe command to remove duplicate file/directory"
-        msg += "\n2.Use rmdir command to remove empty directories"
+        msg = tr('commands.sync.complete')
+        msg += tr('commands.sync.note')
+        msg += tr('commands.sync.dedupe_note')
+        msg += tr('commands.sync.rmdir_note')
         await listener.onRcloneSyncComplete(msg)
     else:
         err = await process.stderr.read()
-        await listener.onDownloadError(str(err))
+        await listener.onDownloadError(ui_error(err))
 
     await message.delete()
 

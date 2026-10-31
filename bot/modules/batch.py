@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from asyncio import sleep, TimeoutError
 from bot import DOWNLOAD_DIR, app, bot
 from bot.helper.ext_utils.help_messages import BATCH_HELP_DICT
@@ -85,7 +86,7 @@ async def _batch(client, message, isLeech=False):
                     _link = get_link(response.text)
                     if _link:
                         await sendMessage(
-                            "📋 <b>Send me the number of files to save from given link</b>, /ignore to cancel",
+                            tr('commands.batch.file_count'),
                             message,
                         )
                         try:
@@ -98,7 +99,7 @@ async def _batch(client, message, isLeech=False):
                                 multi = int(response.text)
                             await download(message, _link, multi, isLeech=isLeech)
                         except ValueError:
-                            await sendMessage("❌ <b>Range must be an integer!</b>", message)
+                            await sendMessage(tr('commands.batch.integer'), message)
                         except FloodWait as fw:
                             await sleep(fw.seconds + 5)
                             await download(message, _link, multi, isLeech=isLeech)
@@ -129,9 +130,9 @@ async def _batch(client, message, isLeech=False):
                         create_task(mirror_leech, client, msg, isLeech=isLeech)
                         await sleep(7)
             else:
-                await sendMessage("📄 <b>Send a .txt file</b>", message)
+                await sendMessage(tr('commands.batch.text_file'), message)
     except TimeoutError:
-        await sendMessage("⏰ Too late 60s gone, try again!", message)
+        await sendMessage(tr('commands.batch.timeout'), message)
     finally:
         await deleteMessage(question)
 
@@ -153,7 +154,7 @@ async def download(message, link, multi, isLeech, value=0):
         try:
             msg, client = await get_tg_link_message(link)
         except TgLinkException as e:
-            await sendMessage(str(e), message)
+            await sendMessage(tr('commands.telegram.error', detail=str(e)), message)
             return
     else:
         client = bot
@@ -168,10 +169,10 @@ async def download(message, link, multi, isLeech, value=0):
                     msg = await app.get_messages(chat, msg_id)
                     client = app
                 except Exception:
-                    await sendMessage("⚠️ <b>Make sure you joined the channel!!</b>", message)
+                    await sendMessage(tr('commands.batch.user_join'), message)
                     return
             else:
-                await sendMessage("⚠️ <b>Bot needs to join chat to download!!</b>", message)
+                await sendMessage(tr('commands.batch.bot_join'), message)
                 return
 
     _multi(message, link, value, multi, isLeech)

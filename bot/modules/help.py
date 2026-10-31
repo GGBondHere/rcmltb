@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from pyrogram.filters import command
 from pyrogram.handlers import MessageHandler
 
@@ -10,42 +11,44 @@ from bot.helper.telegram_helper.message_utils import sendMarkup
 
 async def bot_help(_, message):
     buttons = ButtonMaker()
-    buttons.cb_buildbutton("Mirror", "help back m")
+    buttons.cb_buildbutton(tr('commands.help.mirror', _html=False), "help back m")
     buttons.cb_buildbutton("YT-DLP", "help back y")
-    buttons.cb_buildbutton("Leech", "help back l")
-    buttons.cb_buildbutton("Batch", "help back b")
+    buttons.cb_buildbutton(tr('commands.help.leech', _html=False), "help back l")
+    buttons.cb_buildbutton(tr('commands.help.batch', _html=False), "help back b")
 
     help_text = (
-        "📚 <b>RCMLTB Help</b>\n\n"
-        "Use the buttons below for detailed command usage menus.\n\n"
-        f"• <code>/{BotCommands.MirrorCommand[0]}</code> - Mirror to cloud\n"
-        f"• <code>/{BotCommands.MirrorBatchCommand[0]}</code> - Mirror multiple links\n"
-        f"• <code>/{BotCommands.MirrorSelectCommand[0]}</code> - Mirror with torrent file select\n"
-        f"• <code>/{BotCommands.LeechCommand[0]}</code> - Leech to Telegram\n"
-        f"• <code>/{BotCommands.LeechBatchCommand[0]}</code> - Leech multiple links\n"
-        f"• <code>/{BotCommands.YtdlMirrorCommand[0]}</code> - Download with YT-DLP\n"
-        f"• <code>/{BotCommands.YtdlLeechCommand[0]}</code> - YT-DLP leech\n"
-        f"• <code>/{BotCommands.CloneCommand}</code> - Clone cloud links\n"
-        f"• <code>/{BotCommands.CopyCommand}</code> - Copy between remotes\n"
-        f"• <code>/{BotCommands.SyncCommand}</code> - Sync remotes\n"
-        f"• <code>/{BotCommands.BiSyncCommand}</code> - Two-way remote sync\n"
-        f"• <code>/{BotCommands.RcfmCommand}</code> - Remote file manager\n"
-        f"• <code>/{BotCommands.StorageCommand}</code> - Show remote storage\n"
-        f"• <code>/{BotCommands.CleanupCommand}</code> - Cleanup remote paths\n"
-        f"• <code>/{BotCommands.ServeCommand}</code> - Serve files on web\n"
-        f"• <code>/{BotCommands.CountCommand}</code> - Count Google Drive files\n"
-        f"• <code>/{BotCommands.TorrentSearchCommand}</code> - Torrent search\n"
-        f"• <code>/{BotCommands.TMDB}</code> - TMDB search\n"
-        f"• <code>/{BotCommands.StatusCommand}</code> - Task status\n"
-        f"• <code>/{BotCommands.CancelCommand}</code> - Cancel task\n"
-        f"• <code>/{BotCommands.CancelAllCommand}</code> - Cancel by status/all\n"
-        f"• <code>/{BotCommands.ForceStartCommand[0]}</code> - Force start queued task\n"
-        f"• <code>/{BotCommands.SelectCommand}</code> - Select torrent files by GID\n"
-        f"• <code>/{BotCommands.UserSetCommand}</code> - User settings\n"
-        f"• <code>/{BotCommands.OwnerSetCommand}</code> - Owner settings\n"
-        f"• <code>/{BotCommands.StatsCommand}</code> - System stats\n"
-        f"• <code>/{BotCommands.PingCommand}</code> - Bot latency"
+        tr(
+            'commands.help.overview',
+            mirror_command=BotCommands.MirrorCommand[0],
+            mirror_batch_command=BotCommands.MirrorBatchCommand[0],
+            mirror_select_command=BotCommands.MirrorSelectCommand[0],
+            leech_command=BotCommands.LeechCommand[0],
+            leech_batch_command=BotCommands.LeechBatchCommand[0],
+            ytdl_mirror_command=BotCommands.YtdlMirrorCommand[0],
+            ytdl_leech_command=BotCommands.YtdlLeechCommand[0],
+            clone_command=BotCommands.CloneCommand,
+            copy_command=BotCommands.CopyCommand,
+            sync_command=BotCommands.SyncCommand,
+            bi_sync_command=BotCommands.BiSyncCommand,
+            rcfm_command=BotCommands.RcfmCommand,
+            storage_command=BotCommands.StorageCommand,
+            cleanup_command=BotCommands.CleanupCommand,
+            serve_command=BotCommands.ServeCommand,
+            count_command=BotCommands.CountCommand,
+            torrent_search_command=BotCommands.TorrentSearchCommand,
+            tmdb_command=BotCommands.TMDB,
+            status_command=BotCommands.StatusCommand,
+            cancel_command=BotCommands.CancelCommand,
+            cancel_all_command=BotCommands.CancelAllCommand,
+            force_start_command=BotCommands.ForceStartCommand[0],
+            select_command=BotCommands.SelectCommand,
+            user_set_command=BotCommands.UserSetCommand,
+            owner_set_command=BotCommands.OwnerSetCommand,
+            stats_command=BotCommands.StatsCommand,
+            ping_command=BotCommands.PingCommand,
+        )
     )
+    help_text += tr('commands.help.language', command=BotCommands.LanguageCommand[0])
     await sendMarkup(help_text, message, buttons.build_menu(2))
 
 

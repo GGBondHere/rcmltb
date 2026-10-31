@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import sleep
 from bot import LOGGER, QbTorrents, qb_listener_lock, config_dict
 from bot.core.torrent_manager import TorrentManager
@@ -138,7 +139,7 @@ class QbitTorrentStatus:
             if not config_dict["NO_TASKS_LOGS"]:
                 LOGGER.info(f"Cancelling Download: {self.__info.name}")
             await sleep(0.3)
-            await self.__listener.onDownloadError("Download stopped by user!")
+            await self.__listener.onDownloadError(tr('helpers.text.download_stopped_by_user', _html=False, _user_id=self.__listener.user_id))
             await TorrentManager.qbittorrent.torrents.delete(
                 hashes=[self.__info.hash], delete_files=False
             )

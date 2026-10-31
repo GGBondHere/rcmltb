@@ -1,3 +1,4 @@
+from bot.i18n import tr, error_detail
 from argparse import ArgumentParser
 from asyncio import sleep
 from random import SystemRandom
@@ -81,7 +82,7 @@ async def clone(client, message):
         except DirectDownloadLinkException as e:
             LOGGER.error(str(e))
             if str(e).startswith("ERROR:"):
-                await sendMessage(str(e), message)
+                await sendMessage(tr('commands.link.error', detail=error_detail(e)), message)
                 return
 
     if is_gdrive_link(link) or is_gdrive_id(link):
@@ -89,13 +90,13 @@ async def clone(client, message):
             gdCount().count, link, user.id
         )
         if mime_type is None:
-            await sendMessage(name, message)
+            await sendMessage(tr('commands.count.error', detail=name), message)
             return
         user_id = message.from_user.id
         listener = TaskListener(message, tag, user_id)
         drive = gdClone(link, listener)
         if files <= 20:
-            msg = await sendMessage(f"📥 <b>Cloning:</b> <code>{link}</code>", message)
+            msg = await sendMessage(tr('commands.clone.progress', link=link), message)
         else:
             msg = ""
             gid = "".join(SystemRandom().choices(ascii_letters + digits, k=12))

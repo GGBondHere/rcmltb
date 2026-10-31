@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import TimeoutError, create_subprocess_exec, create_subprocess_shell
 from pyrogram.filters import regex, command
 from pyrogram import filters
@@ -43,6 +44,7 @@ default_values = {
     "STATUS_UPDATE_INTERVAL": 10,
     "LEECH_SPLIT_SIZE": TG_MAX_SPLIT_SIZE,
     "SEARCH_LIMIT": 0,
+    "BOT_UI_LANGUAGE": "zh-CN",
 }
 
 
@@ -64,91 +66,94 @@ async def edit_menus(message, edit_type="env"):
 
 
 def get_env_menu():
-    msg = f"⚙️ <b>Config Variables Settings</b>"
-    msg += f"\n\n<b>State: {STATE.upper()} </b>"
+    msg = tr("settings.owner_title")
+    msg += tr("settings.state", state=tr("settings.state_" + STATE, _html=False))
     buttons = ButtonMaker()
     for k in list(config_dict.keys())[START : 10 + START]:
         buttons.cb_buildbutton(k, f"ownersetmenu^env^editenv^{k}")
     if STATE == "view":
-        buttons.cb_buildbutton("📝Edit", "ownersetmenu^edit^env")
+        buttons.cb_buildbutton(tr("settings.edit", _html=False), "ownersetmenu^edit^env")
     else:
-        buttons.cb_buildbutton("🔍View", "ownersetmenu^view^env")
-    buttons.cb_buildbutton("⚙️ Aria2 Settings", "ownersetmenu^aria^aria_menu")
-    buttons.cb_buildbutton("⚙️ Qbit Settings", "ownersetmenu^qbit^qbit_menu")
+        buttons.cb_buildbutton(tr("settings.view", _html=False), "ownersetmenu^view^env")
+    buttons.cb_buildbutton(tr("settings.aria", _html=False), "ownersetmenu^aria^aria_menu")
+    buttons.cb_buildbutton(tr("settings.qbit", _html=False), "ownersetmenu^qbit^qbit_menu")
     pages = 0
     for x in range(0, len(config_dict) - 1, 10):
         pages = int(x / 10)
     buttons.cb_buildbutton(f"🗓 {int(START/10)}/{pages}", "ownersetmenu^page")
-    buttons.cb_buildbutton("⏪ BACK", "ownersetmenu^back^env", "footer")
-    buttons.cb_buildbutton("NEXT ⏩", f"ownersetmenu^next^env", "footer")
-    buttons.cb_buildbutton("✘ Close Menu", "ownersetmenu^close", "footer_second")
+    buttons.cb_buildbutton(tr("settings.previous", _html=False), "ownersetmenu^back^env", "footer")
+    buttons.cb_buildbutton(tr("settings.next", _html=False), f"ownersetmenu^next^env", "footer")
+    buttons.cb_buildbutton(tr("settings.close_menu", _html=False), "ownersetmenu^close", "footer_second")
     return msg, buttons
 
 
 def get_qbit_menu():
-    msg = "⚙️ <b>Qbit Settings</b>"
-    msg += f"\n\n<b>State: {STATE.upper()} </b>"
+    msg = tr("settings.qbit_title", _html=False)
+    msg += tr("settings.state", state=tr("settings.state_" + STATE, _html=False))
     buttons = ButtonMaker()
     for k in list(qbit_options.keys())[START : 10 + START]:
         buttons.cb_buildbutton(k, f"ownersetmenu^qbit^editqbit^{k}")
     if STATE == "view":
-        buttons.cb_buildbutton("📝Edit", "ownersetmenu^edit^qbit")
+        buttons.cb_buildbutton(tr("settings.edit", _html=False), "ownersetmenu^edit^qbit")
     else:
-        buttons.cb_buildbutton("🔍View", "ownersetmenu^view^qbit")
+        buttons.cb_buildbutton(tr("settings.view", _html=False), "ownersetmenu^view^qbit")
     pages = 0
     for x in range(0, len(qbit_options) - 1, 10):
         pages = int(x / 10)
     buttons.cb_buildbutton(f"🗓 {int(START/10)}/{pages}", "ownersetmenu^page")
-    buttons.cb_buildbutton("⏪ BACK", "ownersetmenu^back^qbit", "footer")
-    buttons.cb_buildbutton("NEXT ⏩", f"ownersetmenu^next^qbit", "footer")
-    buttons.cb_buildbutton("⬅️ Back", "ownersetmenu^back_menu", "footer_second")
-    buttons.cb_buildbutton("✘ Close Menu", "ownersetmenu^close", "footer_third")
+    buttons.cb_buildbutton(tr("settings.previous", _html=False), "ownersetmenu^back^qbit", "footer")
+    buttons.cb_buildbutton(tr("settings.next", _html=False), f"ownersetmenu^next^qbit", "footer")
+    buttons.cb_buildbutton(tr("settings.back_arrow", _html=False), "ownersetmenu^back_menu", "footer_second")
+    buttons.cb_buildbutton(tr("settings.close_menu", _html=False), "ownersetmenu^close", "footer_third")
     return msg, buttons
 
 
 def get_aria_menu():
-    msg = "⚙️ <b>Aria2 Settings</b>"
-    msg += f"\n\n<b>State: {STATE.upper()} </b>"
+    msg = tr("settings.aria_title", _html=False)
+    msg += tr("settings.state", state=tr("settings.state_" + STATE, _html=False))
     buttons = ButtonMaker()
     for k in list(aria2_options.keys())[START : 10 + START]:
         buttons.cb_buildbutton(k, f"ownersetmenu^aria^editaria^{k}")
     if STATE == "view":
-        buttons.cb_buildbutton("📝Edit", "ownersetmenu^edit^aria")
+        buttons.cb_buildbutton(tr("settings.edit", _html=False), "ownersetmenu^edit^aria")
     else:
-        buttons.cb_buildbutton("🔍View", "ownersetmenu^view^aria")
-    buttons.cb_buildbutton("➕ Add new key", "ownersetmenu^aria^editaria^newkey")
+        buttons.cb_buildbutton(tr("settings.view", _html=False), "ownersetmenu^view^aria")
+    buttons.cb_buildbutton(tr("settings.add_key", _html=False), "ownersetmenu^aria^editaria^newkey")
     pages = 0
     for x in range(0, len(aria2_options) - 1, 10):
         pages = int(x / 10)
     buttons.cb_buildbutton(f"🗓 {int(START/10)}/{pages}", "ownersetmenu^page")
-    buttons.cb_buildbutton("⏪ BACK", "ownersetmenu^back^aria", "footer")
-    buttons.cb_buildbutton("NEXT ⏩", "ownersetmenu^next^aria", "footer")
-    buttons.cb_buildbutton("⬅️ Back", "ownersetmenu^back_menu", "footer_second")
-    buttons.cb_buildbutton("✘ Close Menu", "ownersetmenu^close", "footer_third")
+    buttons.cb_buildbutton(tr("settings.previous", _html=False), "ownersetmenu^back^aria", "footer")
+    buttons.cb_buildbutton(tr("settings.next", _html=False), "ownersetmenu^next^aria", "footer")
+    buttons.cb_buildbutton(tr("settings.back_arrow", _html=False), "ownersetmenu^back_menu", "footer_second")
+    buttons.cb_buildbutton(tr("settings.close_menu", _html=False), "ownersetmenu^close", "footer_third")
     return msg, buttons
 
 
 async def update_buttons(message, key, edit_type=None):
     buttons = ButtonMaker()
-    msg = f"Select option for {key}"
+    msg = tr("settings.select_option", config_key=key)
+    if key == "BOT_UI_LANGUAGE" and edit_type == "editenv":
+        buttons.cb_buildbutton("简体中文", "ownersetmenu^language^zh-CN")
+        buttons.cb_buildbutton("English", "ownersetmenu^language^en")
     if edit_type == "editenv":
-        buttons.cb_buildbutton("Send", f"ownersetmenu^send^env^{key}")
+        buttons.cb_buildbutton(tr("settings.send", _html=False), f"ownersetmenu^send^env^{key}")
         if key not in ["TELEGRAM_HASH", "TELEGRAM_API", "OWNER_ID", "BOT_TOKEN"]:
-            buttons.cb_buildbutton("Default", f"ownersetmenu^env^resetenv^{key}")
-        buttons.cb_buildbutton("Back", "ownersetmenu^back^env", "footer")
-        buttons.cb_buildbutton("Close", "ownersetmenu^close", "footer")
+            buttons.cb_buildbutton(tr("settings.default", _html=False), f"ownersetmenu^env^resetenv^{key}")
+        buttons.cb_buildbutton(tr("settings.back", _html=False), "ownersetmenu^back^env", "footer")
+        buttons.cb_buildbutton(tr("settings.close", _html=False), "ownersetmenu^close", "footer")
     elif edit_type == "editaria":
-        buttons.cb_buildbutton("Send", f"ownersetmenu^send^aria^{key}")
+        buttons.cb_buildbutton(tr("settings.send", _html=False), f"ownersetmenu^send^aria^{key}")
         if key != "newkey":
-            buttons.cb_buildbutton("Empty String", f"ownersetmenu^aria^emptyaria^{key}")
-            buttons.cb_buildbutton("Default", f"ownersetmenu^aria^resetaria^{key}")
-        buttons.cb_buildbutton("Back", "ownersetmenu^back^aria", "footer")
-        buttons.cb_buildbutton("Close", "ownersetmenu^close", "footer")
+            buttons.cb_buildbutton(tr("settings.empty", _html=False), f"ownersetmenu^aria^emptyaria^{key}")
+            buttons.cb_buildbutton(tr("settings.default", _html=False), f"ownersetmenu^aria^resetaria^{key}")
+        buttons.cb_buildbutton(tr("settings.back", _html=False), "ownersetmenu^back^aria", "footer")
+        buttons.cb_buildbutton(tr("settings.close", _html=False), "ownersetmenu^close", "footer")
     elif edit_type == "editqbit":
-        buttons.cb_buildbutton("Send", f"ownersetmenu^send^qbit^{key}")
-        buttons.cb_buildbutton("Empty String", f"ownersetmenu^qbit^emptyqbit^{key}")
-        buttons.cb_buildbutton("Back", "ownersetmenu^back^qbit", "footer")
-        buttons.cb_buildbutton("Close", "ownersetmenu^close", "footer")
+        buttons.cb_buildbutton(tr("settings.send", _html=False), f"ownersetmenu^send^qbit^{key}")
+        buttons.cb_buildbutton(tr("settings.empty", _html=False), f"ownersetmenu^qbit^emptyqbit^{key}")
+        buttons.cb_buildbutton(tr("settings.back", _html=False), "ownersetmenu^back^qbit", "footer")
+        buttons.cb_buildbutton(tr("settings.close", _html=False), "ownersetmenu^close", "footer")
     await editMarkup(msg, message, reply_markup=buttons.build_menu(2))
 
 
@@ -158,8 +163,27 @@ async def ownerset_callback(client, callback_query):
     data = data.split("^")
     message = query.message
     user_id = query.from_user.id
+    from bot import OWNER_ID
+    language_action = data[1] == "language" or (len(data) > 3 and data[3] == "BOT_UI_LANGUAGE")
+    if language_action and user_id != OWNER_ID:
+        await query.answer(tr("common.access_denied", _html=False), show_alert=True)
+        return
 
-    if data[1] == "env":
+    if data[1] == "language":
+        try:
+            value = Config._convert("BOT_UI_LANGUAGE", data[2])
+        except ValueError:
+            await query.answer(tr("settings.language.invalid", _html=False), show_alert=True)
+            return
+        Config.set("BOT_UI_LANGUAGE", value)
+        config_dict["BOT_UI_LANGUAGE"] = value
+        if database.enabled:
+            await database.update_config({"BOT_UI_LANGUAGE": value})
+        from bot.i18n.commands import publish_commands
+        await publish_commands(client)
+        await query.answer()
+        await edit_menus(message, "env")
+    elif data[1] == "env":
         if data[2] == "editenv" and STATE == "edit":
             if data[3] in [
                 "PARALLEL_TASKS",
@@ -180,7 +204,7 @@ async def ownerset_callback(client, callback_query):
                 "DATABASE_URL",
             ]:
                 await query.answer(
-                    text="🔄 Restart required for this to apply!", show_alert=True
+                    text=tr("settings.restart", _html=False), show_alert=True
                 )
             else:
                 await query.answer()
@@ -195,7 +219,7 @@ async def ownerset_callback(client, callback_query):
                 await sendFile(message, filename)
                 return
             if value == "":
-                value = None
+                value = tr("settings.none", _html=False)
             await query.answer(text=f"{value}", show_alert=True)
         elif data[2] == "resetenv":
             value = ""
@@ -238,12 +262,15 @@ async def ownerset_callback(client, callback_query):
                     await create_subprocess_shell(
                         f"gunicorn qbitweb.wserver:app --bind 0.0.0.0:80 --worker-class gevent"
                     )
-            await query.answer("Reseted")
+            await query.answer(tr("settings.reset", _html=False))
             config_dict[data[3]] = value
             if hasattr(Config, data[3]):
                 Config.set(data[3], value)
             if database.enabled:
                 await database.update_config({data[3]: value})
+            if data[3] == "BOT_UI_LANGUAGE":
+                from bot.i18n.commands import publish_commands
+                await publish_commands(client)
             if data[3] in ["SEARCH_PLUGINS", "SEARCH_API_LINK"]:
                 await initiate_search_tools()
             await edit_menus(message, "env")
@@ -263,13 +290,13 @@ async def ownerset_callback(client, callback_query):
                 await sendFile(message, filename)
                 return
             elif value == "":
-                value = None
+                value = tr("settings.none", _html=False)
             await query.answer(text=f"{value}", show_alert=True)
         elif data[2] == "resetaria":
             aria2_defaults = await TorrentManager.get_aria2_options()
             if aria2_defaults.get(data[3], "") == aria2_options.get(data[3], ""):
                 await query.answer(
-                    text="Value already same as you added in aria.sh!", show_alert=True
+                    text=tr("settings.aria_same", _html=False), show_alert=True
                 )
                 return
             await query.answer()
@@ -302,7 +329,7 @@ async def ownerset_callback(client, callback_query):
                 await sendFile(message, filename)
                 return
             if value == "":
-                value = None
+                value = tr("settings.none", _html=False)
             await query.answer(text=f"{value}", show_alert=True)
         elif data[2] == "emptyqbit":
             await query.answer()
@@ -355,7 +382,7 @@ async def ownerset_callback(client, callback_query):
 async def start_env_listener(client, query, user_id, key):
     message = query.message
     question = await sendMessage(
-        "⏱️ <b>Send valid value for selected variable</b>, /ignore to cancel. Timeout: 60 sec",
+        tr("settings.value_prompt", _html=False),
         message,
     )
     try:
@@ -363,7 +390,7 @@ async def start_env_listener(client, query, user_id, key):
             filters.text, id=filters.user(user_id), timeout=60
         )
     except TimeoutError:
-        await client.send_message(message.chat.id, text="⏰ Too late 60s gone, try again!")
+        await client.send_message(message.chat.id, text=tr("settings.timeout_clock", _html=False))
         return
     else:
         if response:
@@ -372,7 +399,13 @@ async def start_env_listener(client, query, user_id, key):
                     await client.listen.Cancel(filters.user(user_id))
                 else:
                     value = response.text.strip()
-                    if value.lower() == "true":
+                    if key == "BOT_UI_LANGUAGE":
+                        try:
+                            value = Config._convert(key, value)
+                        except ValueError:
+                            await sendMessage(tr("settings.language.invalid"), message)
+                            return
+                    elif value.lower() == "true":
                         value = True
                     elif value.lower() == "false":
                         value = False
@@ -439,13 +472,16 @@ async def start_env_listener(client, query, user_id, key):
                     config_dict[key] = value
                     if hasattr(Config, key):
                         Config.set(key, value)
-                    await edit_menus(message, "env")
                     if database.enabled:
                         await database.update_config({key: value})
+                    if key == "BOT_UI_LANGUAGE":
+                        from bot.i18n.commands import publish_commands
+                        await publish_commands(client)
+                    await edit_menus(message, "env")
                     if key in ["SEARCH_PLUGINS", "SEARCH_API_LINK"]:
                         await initiate_search_tools()
             except KeyError:
-                await query.answer("Value doesn't exist")
+                await query.answer(tr("settings.value_missing", _html=False))
     finally:
         await question.delete()
 
@@ -454,12 +490,12 @@ async def start_aria_listener(client, query, user_id, key):
     message = query.message
     if key == "newkey":
         question = await sendMessage(
-            "🔑 <b>Send a key with value. Example:</b> https-proxy-user:value, /ignore to cancel. Timeout: 60 sec",
+            tr("settings.key_prompt", _html=False),
             message,
         )
     else:
         question = await sendMessage(
-            "⏱️ <b>Send valid value for selected variable</b>, /ignore to cancel. Timeout: 60 sec",
+            tr("settings.value_prompt", _html=False),
             message,
         )
     try:
@@ -467,7 +503,7 @@ async def start_aria_listener(client, query, user_id, key):
             filters.text, id=filters.user(user_id), timeout=60
         )
     except TimeoutError:
-        await client.send_message(message.chat.id, text="⏰ Too late 60s gone, try again!")
+        await client.send_message(message.chat.id, text=tr("settings.timeout_clock", _html=False))
         return
     else:
         if response:
@@ -492,7 +528,7 @@ async def start_aria_listener(client, query, user_id, key):
                     if database.enabled:
                         await database.update_aria2(key, value)
             except KeyError:
-                await query.answer("Value doesn't exist")
+                await query.answer(tr("settings.value_missing", _html=False))
     finally:
         await question.delete()
 
@@ -500,7 +536,7 @@ async def start_aria_listener(client, query, user_id, key):
 async def start_qbit_listener(client, query, user_id, key):
     message = query.message
     question = await sendMessage(
-        "⏱️ <b>Send valid value for selected variable</b>, /ignore to cancel. Timeout: 60 sec",
+        tr("settings.value_prompt", _html=False),
         message,
     )
     try:
@@ -508,7 +544,7 @@ async def start_qbit_listener(client, query, user_id, key):
             filters.text, id=filters.user(user_id), timeout=60
         )
     except TimeoutError:
-        await client.send_message(message.chat.id, text="⏰ Too late 60s gone, try again!")
+        await client.send_message(message.chat.id, text=tr("settings.timeout_clock", _html=False))
         return
     else:
         if response:
@@ -532,7 +568,7 @@ async def start_qbit_listener(client, query, user_id, key):
                     if database.enabled:
                         await database.update_qbittorrent(key, value)
             except KeyError:
-                await query.answer("Value doesn't exist")
+                await query.answer(tr("settings.value_missing", _html=False))
     finally:
         await question.delete()
 

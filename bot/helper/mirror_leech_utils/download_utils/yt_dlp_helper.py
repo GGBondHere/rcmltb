@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from logging import getLogger
 from os import path as ospath, listdir
 from re import search as re_search
@@ -165,7 +166,7 @@ class YoutubeDLHelper:
             try:
                 result = ydl.extract_info(self._listener.link, download=False)
                 if result is None:
-                    raise ValueError("Info result is None")
+                    raise ValueError(tr('helpers.text.info_result_is_none', _html=False))
             except Exception as e:
                 return self._on_download_error(str(e))
             if "entries" in result:
@@ -208,7 +209,7 @@ class YoutubeDLHelper:
                 not ospath.exists(path) or len(listdir(path)) == 0
             ):
                 self._on_download_error(
-                    "No video available to download from this playlist. Check logs for more details"
+                    tr('helpers.text.no_video_available_to_download_from_this_playlist_check_logs_for_more', _html=False)
                 )
                 return
             if self._listener.is_cancelled:
@@ -367,7 +368,7 @@ class YoutubeDLHelper:
         self._listener.is_cancelled = True
         _LOGGER.info(f"Cancelling Download: {self._listener.name}")
         if not self._downloading:
-            await self._listener.onDownloadError("Download Cancelled by User!")
+            await self._listener.onDownloadError(tr('helpers.text.download_cancelled_by_user', _html=False, _user_id=self._listener.user_id))
 
     def _set_options(self, options):
         from ytdlp_options import parse_ytdlp_options

@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from bot import OWNER_ID, bot, config_dict, local_storage, remotes_multi
 from bot.helper.ext_utils.bot_utils import run_sync_to_async
 from bot.helper.telegram_helper.bot_commands import BotCommands
@@ -33,7 +34,7 @@ async def handle_mirrorselect(_, message):
         if config_dict["MULTI_RCLONE_CONFIG"] or await CustomFilters.sudo_filter("", message):
             await list_remotes(message, menu_type=Menus.MIRROR_SELECT)
         else:
-            await sendMessage("🚫 <b>Not allowed to use</b>", message)
+            await sendMessage(tr('commands.menu.denied'), message)
 
 
 async def mirrorselect_callback(_, query):
@@ -45,7 +46,7 @@ async def mirrorselect_callback(_, query):
     rclone_remote = get_rclone_data("MIRROR_SELECT_REMOTE", user_id)
 
     if int(cmd[-1]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours', _html=False), show_alert=True)
         return
     if cmd[1] == "remote":
         is_crypt = False if cmd[-2] == "False" else True
@@ -108,9 +109,7 @@ async def mirrorselect_callback(_, query):
         if selected_remote:
             selected_path = f"{selected_remote}:{selected_base}"
             await sendMessage(
-                "✅ <b>Destination saved</b>\n"
-                f"<b>Path:</b> <code>{selected_path}</code>\n\n"
-                f"Now send /{BotCommands.MirrorCommand[0]} &lt;link&gt;",
+                tr('commands.mirror_select.saved', selected_path=selected_path, mirror_command=BotCommands.MirrorCommand[0]),
                 message,
             )
     else:
@@ -133,7 +132,7 @@ async def next_page_mirrorselect(_, callback_query):
 
     buttons = ButtonMaker()
     buttons.cb_buildbutton(
-        "✅ Use this folder", f"{Menus.MIRROR_SELECT}^close^{user_id}"
+        tr('commands.mirror_select.use_folder', _html=False), f"{Menus.MIRROR_SELECT}^close^{user_id}"
     )
 
     next_info, _next_offset = await run_sync_to_async(rcloneListNextPage, info, next_offset)
@@ -163,8 +162,7 @@ async def next_page_mirrorselect(_, callback_query):
     mirrorsel_remote = get_rclone_data("MIRROR_SELECT_REMOTE", user_id)
     base_dir = get_rclone_data("MIRROR_SELECT_BASE_DIR", user_id)
     msg = (
-        "📁 <b>Choose destination folder</b>\n\n"
-        f"<b>Path:</b> <code>{mirrorsel_remote}:{base_dir}</code>"
+        tr('commands.mirror_select.folder', mirrorsel_remote=mirrorsel_remote, base_dir=base_dir)
     )
     await editMessage(msg, message, reply_markup=buttons.build_menu(1))
 

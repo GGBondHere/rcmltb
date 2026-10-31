@@ -1,4 +1,5 @@
 import time
+from bot.i18n import tr
 from math import floor
 from functools import partial
 from os import listdir, rmdir, walk, path as ospath, remove
@@ -16,8 +17,8 @@ def get_bottom_status():
     diff = human_readable_timedelta(diff)
     usage = disk_usage("/")
     free = human_readable_bytes(usage.free)
-    msg = f"\n🖥 **CPU:** {cpu_percent()}% | **FREE:** {free}"
-    msg += f"\n💾 **RAM:** {virtual_memory().percent}% | **UPTIME:** {diff}"
+    msg = tr("helpers.status.bottom_cpu_free", cpu=cpu_percent(), free=free)
+    msg += tr("helpers.status.bottom_ram_uptime", ram=virtual_memory().percent, uptime=diff)
     return msg
 
 

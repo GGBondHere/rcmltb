@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw, task_locale, error_detail
 from html import escape
 from inspect import iscoroutine
 from json import loads as jsonloads
@@ -80,6 +81,7 @@ class TaskListener(TaskConfig):
     async def onDownloadStart(self):
         pass
 
+    @task_locale
     async def onDownloadComplete(self):
         # Check for queued tasks when download completes
         from bot.helper.ext_utils.task_manager import start_from_queued
@@ -130,7 +132,7 @@ class TaskListener(TaskConfig):
             LOGGER.info(f"Download completed: {name}")
 
         if multi_links:
-            await self.onUploadError("Downloaded! Waiting for other tasks...")
+            await self.onUploadError(tr('helpers.text.downloaded_waiting_for_other_tasks', _html=False))
             return
 
         if name == "None" or not ospath.exists(f"{self.dir}/{name}"):
@@ -318,7 +320,7 @@ class TaskListener(TaskConfig):
         if is_queued:
             from bot.helper.telegram_helper.message_utils import sendMessage
             await sendMessage(
-                f"⏳ <b>Your task has been added to the upload queue</b>",
+                tr('helpers.text.your_task_has_been_added_to_the_upload_queue'),
                 self.message
             )
             if event:
@@ -388,9 +390,9 @@ class TaskListener(TaskConfig):
         else:
             if config_dict["LOCAL_MIRROR"]:
                 size = get_readable_file_size(size)
-                msg = f"<b>Name: </b><code>{escape(name)}</code>\n\n"
-                msg += f"<b>Size: </b>{size}\n"
-                msg += f"<b>cc: </b>{self.tag}\n\n"
+                msg = tr('helpers.text.name', value1=raw(escape(name)))
+                msg += tr('helpers.task.local_size', value1=size)
+                msg += tr('helpers.task.local_initiator', value1=raw(self.tag))
                 await sendMessage(msg, self.message)
 
                 async with status_dict_lock:
@@ -411,6 +413,7 @@ class TaskListener(TaskConfig):
                 rcm = RcloneMirror(path, up_name, size, self.user_id, self)
                 await rcm.mirror()
 
+    @task_locale
     async def onRcloneCopyComplete(self, rc_config, rclone_path, folder_name, is_gdrive):
         async with status_dict_lock:
             if self.uid in status_dict.keys():
@@ -430,13 +433,13 @@ class TaskListener(TaskConfig):
         if rc == 0:
             data = jsonloads(out)
         else:
-            await sendMessage(f"Error: {err}", self.message)
+            await sendMessage(tr('helpers.text.error', value1=err), self.message)
             return
 
-        msg = f"<b>Total Files</b>: {data['count']}\n"
+        msg = tr('helpers.text.total_files', value1=data['count'])
         size = human_readable_bytes(data['bytes'])
-        msg += f"<b>Total Size</b>: {size}\n\n"
-        msg += f"<b>cc: </b>{self.tag}"
+        msg += tr('helpers.text.total_size', value1=size)
+        msg += tr('helpers.text.cc', value1=raw(self.tag))
 
         if is_gdrive:
             link = ""
@@ -444,10 +447,10 @@ class TaskListener(TaskConfig):
             if id:
                 link = f"https://drive.google.com/drive/folders/{id}"
             if link:
-                button.url_buildbutton("Cloud Link", link)
+                button.url_buildbutton(tr('helpers.text.cloud_link', _html=False), link)
             else:
                 button.url_buildbutton(
-                    "Cloud Link", "https://drive.google.com/uc?id=err"
+                    tr('helpers.text.cloud_link', _html=False), "https://drive.google.com/uc?id=err"
                 )
         else:
             cmd = [
@@ -459,10 +462,10 @@ class TaskListener(TaskConfig):
             out, err, rc = await cmd_exec(cmd)
             url = out.strip()
             if rc == 0:
-                button.url_buildbutton("Cloud Link", url)
+                button.url_buildbutton(tr('helpers.text.cloud_link', _html=False), url)
             else:
                 LOGGER.error(f"Error while getting link. Error: {err}")
-                button.url_buildbutton("Cloud Link", "http://www.example.com")
+                button.url_buildbutton(tr('helpers.text.cloud_link', _html=False), "http://www.example.com")
 
         await sendMarkup(msg, self.message, reply_markup=button.build_menu(1))
 
@@ -472,6 +475,7 @@ class TaskListener(TaskConfig):
         else:
             await update_all_messages()
 
+    @task_locale
     async def onRcloneSyncComplete(self, msg):
         async with status_dict_lock:
             if self.uid in status_dict.keys():
@@ -487,6 +491,7 @@ class TaskListener(TaskConfig):
         else:
             await update_all_messages()
 
+    @task_locale
     async def onUploadComplete(
         self,
         link,
@@ -502,14 +507,14 @@ class TaskListener(TaskConfig):
         private=False,
     ):
         self.upload_succeeded = True
-        msg = f"<b>Name: </b><code>{escape(name)}</code>\n\n"
-        msg += f"<b>Size: </b>{size}"
+        msg = tr('helpers.text.name', value1=raw(escape(name)))
+        msg += tr('helpers.text.size', value1=size)
 
         if self.isLeech:
-            msg += f"\n<b>Total Files: </b>{folders}"
+            msg += tr('helpers.task.completed_total_files', value1=folders)
             if mime_type != 0:
-                msg += f"\n<b>Corrupted Files: </b>{mime_type}"
-            msg += f"\n<b>cc: </b>{self.tag}\n\n"
+                msg += tr('helpers.text.corrupted_files', value1=mime_type)
+            msg += tr('helpers.task.leech_initiator', value1=raw(self.tag))
             if not files:
                 await sendMessage(msg, self.message)
             else:
@@ -529,10 +534,11 @@ class TaskListener(TaskConfig):
                     await clean_target(self.newDir)
                 return
         else:
-            msg += f"\n\n<b>Type: </b>{mime_type}"
+            mime_label = tr("common.folder") if mime_type == "Folder" else tr("common.file") if mime_type == "File" else mime_type
+            msg += tr('helpers.text.type', value1=mime_label)
             if mime_type == "Folder":
-                msg += f"\n<b>SubFolders: </b>{folders}"
-                msg += f"\n<b>Files: </b>{files}"
+                msg += tr('helpers.text.subfolders', value1=folders)
+                msg += tr('helpers.text.files', value1=files)
 
             buttons = ButtonMaker()
 
@@ -548,19 +554,19 @@ class TaskListener(TaskConfig):
                     link = link
 
                 if link:
-                    buttons.url_buildbutton("Cloud Link", link)
+                    buttons.url_buildbutton(tr('helpers.text.cloud_link', _html=False), link)
                 else:
                     buttons.url_buildbutton(
-                        "Cloud Link", "https://drive.google.com/uc?id=err"
+                        tr('helpers.text.cloud_link', _html=False), "https://drive.google.com/uc?id=err"
                     )
             else:
                 cmd = ["rclone", "link", f"--config={rclone_config}", rclone_path]
                 res, _, code = await cmd_exec(cmd)
                 if code == 0:
-                    buttons.url_buildbutton("Cloud Link", res)
+                    buttons.url_buildbutton(tr('helpers.text.cloud_link', _html=False), res)
                 else:
                     buttons.url_buildbutton(
-                        "Cloud Link", "http://www.example.com/uc?id=err"
+                        tr('helpers.text.cloud_link', _html=False), "http://www.example.com/uc?id=err"
                     )
 
             if is_gdrive or not rclone_path and dir_id:
@@ -575,10 +581,10 @@ class TaskListener(TaskConfig):
                     GD_INDEX_URL = config_dict["GD_INDEX_URL"]
                 if GD_INDEX_URL:
                     share_url = f"{GD_INDEX_URL}findpath?id={dir_id}"
-                    buttons.url_buildbutton("Index Link", share_url)
+                    buttons.url_buildbutton(tr('helpers.text.index_link', _html=False), share_url)
                     if mime_type.startswith(("image", "video", "audio")):
                         share_urls = f"{GD_INDEX_URL}findpath?id={dir_id}&?a=view"
-                        buttons.url_buildbutton("View Link", share_urls)
+                        buttons.url_buildbutton(tr('helpers.text.view_link', _html=False), share_urls)
             elif (
                 rclone_path
                 and (RC_INDEX_URL := config_dict["RC_INDEX_URL"])
@@ -590,9 +596,9 @@ class TaskListener(TaskConfig):
                 share_url = f"{RC_INDEX_URL}:{RC_INDEX_PORT}/[{remote}:]{url_path}"
                 if mime_type == "Folder":
                     share_url += "/"
-                buttons.url_buildbutton("Rclone Link", share_url)
+                buttons.url_buildbutton(tr('helpers.text.rclone_link', _html=False), share_url)
 
-            msg += f"\n\n<b>cc: </b>{self.tag}"
+            msg += tr('helpers.task.mirror_initiator', value1=raw(self.tag))
             await sendMessage(msg, self.message, buttons.build_menu(1))
 
             if self.seed:
@@ -621,6 +627,7 @@ class TaskListener(TaskConfig):
         else:
             await update_all_messages()
 
+    @task_locale
     async def onDownloadError(self, error, button=None):
         self.upload_succeeded = False
         async with status_dict_lock:
@@ -632,7 +639,7 @@ class TaskListener(TaskConfig):
             self.sameDir["tasks"].remove(self.uid)
             self.sameDir["total"] -= 1
 
-        msg = f"{self.tag} Download stopped due to: {escape(error)}"
+        msg = tr('helpers.text.download_stopped_due_to', value1=raw(self.tag), value2=error_detail(error))
         if button:
             await sendMarkup(msg, self.message, button)
         else:
@@ -643,6 +650,7 @@ class TaskListener(TaskConfig):
         else:
             await update_all_messages()
 
+    @task_locale
     async def onUploadError(self, error):
         self.upload_succeeded = False
         async with status_dict_lock:
@@ -650,7 +658,7 @@ class TaskListener(TaskConfig):
                 del status_dict[self.uid]
             count = len(status_dict)
 
-        await sendMessage(f"{self.tag} {escape(error)}", self.message)
+        await sendMessage(tr("helpers.task.upload_error", tag=raw(self.tag), error=error_detail(error)), self.message)
 
         if count == 0:
             await self.clean()

@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from bot import bot, config_dict
 from pyrogram.filters import regex, command
 from pyrogram.handlers import CallbackQueryHandler, MessageHandler
@@ -41,7 +42,7 @@ async def handle_copy(client, message):
                 message, remote_type="remote_origin", menu_type=Menus.COPY
             )
         else:
-            await sendMessage("🚫 <b>Not allowed to use</b>", message)
+            await sendMessage(tr('commands.menu.denied'), message)
 
 
 async def copy_menu_callback(client, callback_query):
@@ -59,7 +60,7 @@ async def copy_menu_callback(client, callback_query):
     destination_dir = get_rclone_data("COPY_DESTINATION_DIR", user_id)
 
     if int(cmd[-1]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours', _html=False), show_alert=True)
         return
 
     # First Menu
@@ -186,12 +187,12 @@ async def next_page_copy(client, callback_query):
     if is_second_menu:
         dir_callback = "dest_dir"
         file_callback = "copy"
-        buttons.cb_buildbutton("✅ Select this folder", f"copymenu^copy^{user_id}")
+        buttons.cb_buildbutton(tr('commands.button.select_folder', _html=False), f"copymenu^copy^{user_id}")
     else:
         dir_callback = "origin_dir"
         file_callback = "second_menu"
         buttons.cb_buildbutton(
-            "✅ Select this folder", f"copymenu^second_menu^_^False^{user_id}"
+            tr('commands.button.select_folder', _html=False), f"copymenu^second_menu^_^False^{user_id}"
         )
 
     await run_sync_to_async(
@@ -220,12 +221,12 @@ async def next_page_copy(client, callback_query):
     if is_second_menu:
         destination_remote = get_rclone_data("COPY_DESTINATION_REMOTE", user_id)
         destination_dir = get_rclone_data("COPY_DESTINATION_DIR", user_id)
-        msg = f"📂 <b>Select folder where you want to copy</b>\n\nPath:<code>{destination_remote}:{destination_dir}</code>"
+        msg = tr('commands.copy.destination', destination_remote=destination_remote, destination_dir=destination_dir)
         await editMessage(msg, message, reply_markup=buttons.build_menu(1))
     else:
         origin_remote = get_rclone_data("COPY_ORIGIN_REMOTE", user_id)
         origin_dir = get_rclone_data("COPY_ORIGIN_DIR", user_id)
-        msg = f"📄 <b>Select file or folder which you want to copy</b>\n\nPath:<code>{origin_remote}:{origin_dir}</code>"
+        msg = tr('commands.copy.source', origin_remote=origin_remote, origin_dir=origin_dir)
         await editMessage(msg, message, reply_markup=buttons.build_menu(1))
 
 

@@ -68,7 +68,7 @@ class CleanupTests(unittest.IsolatedAsyncioTestCase):
     async def test_seed_finish_only_deletes_files_after_successful_upload(self):
         for succeeded, local in ((False, False), (True, False), (True, True)):
             with self.subTest(succeeded=succeeded, local=local):
-                listener = SimpleNamespace(upload_succeeded=succeeded, onUploadError=AsyncMock())
+                listener = SimpleNamespace(user_id=OWNER, upload_succeeded=succeeded, onUploadError=AsyncMock())
                 remove = AsyncMock()
                 module = load_source("bot/helper/listeners/qbit_listener.py", {"__onSeedFinish"}, {
                     "new_task": lambda func: func, "LOGGER": logging.getLogger("test"),
@@ -96,7 +96,7 @@ class CleanupTests(unittest.IsolatedAsyncioTestCase):
         task.__dict__.update({
             "_QbitTorrentStatus__update": AsyncMock(),
             "_QbitTorrentStatus__info": SimpleNamespace(tags="777", hash="hash"),
-            "_QbitTorrentStatus__listener": SimpleNamespace(onDownloadError=AsyncMock()),
+            "_QbitTorrentStatus__listener": SimpleNamespace(user_id=USER, onDownloadError=AsyncMock()),
             "status": AsyncMock(return_value="download"),
         })
         await task.cancel_task()
@@ -287,7 +287,7 @@ class SharedRcloneTests(unittest.IsolatedAsyncioTestCase):
             "clean_download": AsyncMock(),
         })
         Path("video.mp4").write_bytes(b"video")
-        listener = SimpleNamespace(message=message(user_id), uid=777, dir="downloads/777",
+        listener = SimpleNamespace(message=message(user_id), user_id=user_id, uid=777, dir="downloads/777",
                                    onUploadComplete=AsyncMock(), onUploadError=AsyncMock())
         return uploader, uploads, listener
 

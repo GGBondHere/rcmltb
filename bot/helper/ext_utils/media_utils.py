@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from os import path as ospath
 from aiofiles.os import path as aiopath, makedirs
 from time import time
@@ -217,7 +218,7 @@ def format_media_summary(info, kind):
                 parts.append(audio_codec)
         if duration:
             parts.append(duration)
-        return f"🎬 {' • '.join(parts)}" if parts else "🎬 Video"
+        return f"🎬 {' • '.join(parts)}" if parts else tr("helpers.media.video", _html=False)
 
     audio = (info.get("audio") or [{}])[0]
     parts = [
@@ -229,7 +230,7 @@ def format_media_summary(info, kind):
         ]
         if part
     ]
-    return f"🎵 {' • '.join(parts)}" if parts else "🎵 Audio"
+    return f"🎵 {' • '.join(parts)}" if parts else tr("helpers.media.audio", _html=False)
 
 
 async def get_upload_media_details(path):
@@ -245,7 +246,7 @@ async def get_upload_media_details(path):
             ext = ospath.splitext(path)[1].lstrip(".").upper() or "IMAGE"
             return "image", None, f"🖼 {width}x{height} • {ext}"
         except Exception:
-            return "image", None, "🖼 Image"
+            return "image", None, tr("helpers.media.image", _html=False)
 
     if not (
         mime_type.startswith("video")
@@ -282,7 +283,7 @@ async def get_upload_media_details(path):
 def format_media_info(info, filename):
     """Format media info dict to readable message."""
     if not info:
-        return "❌ <b>Failed to get media info</b>"
+        return tr('helpers.text.failed_to_get_media_info')
 
     from bot.helper.ext_utils.human_format import get_readable_file_size
 
@@ -293,13 +294,7 @@ def format_media_info(info, filename):
     seconds = duration % 60
     duration_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
 
-    msg = f"""📊 <b>MediaInfo</b>
-
-<b>File:</b> <code>{filename}</code>
-<b>Size:</b> {get_readable_file_size(info["size"])}
-<b>Duration:</b> {duration_str}
-<b>Container:</b> {info["format"]}
-"""
+    msg = tr('helpers.text.mediainfo_file_size_duration_container', value1=filename, value2=get_readable_file_size(info['size']), value3=duration_str, value4=info['format'])
 
     # Video info
     if info["video"]:
@@ -312,32 +307,23 @@ def format_media_info(info, filename):
         elif video["width"] >= 1280:
             resolution += " (720p)"
 
-        msg += f"""
-🎬 <b>Video</b>
-<code>Codec: {video['codec']}
-Resolution: {resolution}
-Frame Rate: {video['fps']:.3f} fps
-Bitrate: {video['bitrate']} kbps</code>
-"""
+        msg += tr('helpers.text.video_codec_resolution_frame_rate_fps_bitrate_kbps', value1=video['codec'], value2=resolution, value3=video['fps'], value4=video['bitrate'])
 
     if info.get("artist") or info.get("title"):
-        msg += """
-
-🎵 <b>Metadata</b>
-<code>"""
+        msg += tr('helpers.text.metadata')
         if info.get("artist"):
-            msg += f"Artist: {info['artist']}\n"
+            msg += tr('helpers.text.artist', value1=info['artist'])
         if info.get("title"):
-            msg += f"Title: {info['title']}\n"
+            msg += tr('helpers.text.title', value1=info['title'])
         msg += "</code>"
 
     # Audio info
     for i, audio in enumerate(info["audio"], 1):
         channels_str = ""
         if audio["channels"] == 1:
-            channels_str = "1 (Mono)"
+            channels_str = tr("helpers.media.mono")
         elif audio["channels"] == 2:
-            channels_str = "2 (Stereo)"
+            channels_str = tr("helpers.media.stereo")
         elif audio["channels"] == 6:
             channels_str = "6 (5.1)"
         elif audio["channels"] == 8:
@@ -345,21 +331,13 @@ Bitrate: {video['bitrate']} kbps</code>
         else:
             channels_str = str(audio["channels"])
 
-        msg += f"""
-🔊 <b>Audio Track {i}</b>
-<code>Codec: {audio['codec']}
-Channels: {channels_str}
-Language: {audio['language']}
-Sample Rate: {audio['sample_rate']} Hz</code>
-"""
+        msg += tr('helpers.text.audio_track_codec_channels_language_sample_rate_hz', value1=i, value2=audio['codec'], value3=channels_str, value4=audio['language'], value5=audio['sample_rate'])
 
     # Subtitle info
     if info["subtitles"]:
-        msg += """
-📝 <b>Subtitles</b>
-<code>"""
+        msg += tr('helpers.text.subtitles')
         for i, sub in enumerate(info["subtitles"], 1):
-            msg += f"{i}. {sub['language']} ({sub['format']})\n"
+            msg += tr("helpers.media.subtitle_track", number=i, language=sub['language'], codec=sub['format'])
         msg += "</code>"
 
     return msg

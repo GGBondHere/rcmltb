@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from asyncio import TimeoutError
 from os import path as ospath
 from bot.modules.queue import conditional_queue_add
@@ -53,9 +54,9 @@ async def leech(client, message):
         listener = TaskListener(message, tag, user_id, isLeech=True)
         listener_dict[message.id] = [listener]
         button = ButtonMaker()
-        button.cb_buildbutton("🔗 From Link", f"leechselect^link^{user_id}")
-        button.cb_buildbutton("📁 From Cloud", f"leechselect^remotes^{user_id}")
-        button.cb_buildbutton("✘ Close Menu", f"leechselect^close^{user_id}")
+        button.cb_buildbutton(tr('commands.leech.link', _html=False), f"leechselect^link^{user_id}")
+        button.cb_buildbutton(tr('commands.leech.cloud', _html=False), f"leechselect^remotes^{user_id}")
+        button.cb_buildbutton(tr('commands.button.close_menu', _html=False), f"leechselect^close^{user_id}")
         if message.reply_to_message:
             await mirror_leech(client, message, isLeech=True)
             return
@@ -63,10 +64,10 @@ async def leech(client, message):
             "", message
         ):
             await sendMarkup(
-                "📥 <b>Select from where you want to leech</b>", message, button.build_menu(2)
+                tr('commands.leech.source'), message, button.build_menu(2)
             )
         else:
-            await sendMessage("📎 Reply to a link/file", message)
+            await sendMessage(tr('commands.leech.reply'), message)
 
 
 async def leech_menu_cb(_, callback_query):
@@ -82,7 +83,7 @@ async def leech_menu_cb(_, callback_query):
     rclone_remote = get_rclone_data("LEECH_REMOTE", user_id)
 
     if int(cmd[-1]) != user_id:
-        await query.answer("This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours_plain', _html=False), show_alert=True)
         return
     elif cmd[1] == "remote":
         update_rclone_data("LEECH_BASE_DIR", "", user_id)  # Reset Dir
@@ -144,7 +145,7 @@ async def next_page_leech(_, callback_query):
     prev_offset = next_offset - 10
 
     buttons = ButtonMaker()
-    buttons.cb_buildbutton(f"✅ Select this folder", f"leechmenu^leech_folder^{user_id}")
+    buttons.cb_buildbutton(tr('commands.button.select_folder', _html=False), f"leechmenu^leech_folder^{user_id}")
 
     next_info, _next_offset = await run_sync_to_async(
         rcloneListNextPage, info, next_offset
@@ -174,7 +175,7 @@ async def next_page_leech(_, callback_query):
 
     leech_remote = get_rclone_data("LEECH_REMOTE", user_id)
     base_dir = get_rclone_data("LEECH_BASE_DIR", user_id)
-    msg = f"📂 <b>Select folder or file that you want to leech</b>\n\n<b>Path:</b><code>{leech_remote}:{base_dir}</code>"
+    msg = tr('commands.leech.folder', leech_remote=leech_remote, base_dir=base_dir)
     await editMessage(msg, message, reply_markup=buttons.build_menu(1))
 
 
@@ -182,7 +183,7 @@ async def selection_callback(client, query):
     cmd = query.data.split("^")
     message = query.message
     if message.reply_to_message is None:
-        await query.answer("📭 Original message not found!", show_alert=True)
+        await query.answer(tr('commands.leech.original_missing', _html=False), show_alert=True)
         return
     msg_id = message.reply_to_message.id
 
@@ -191,7 +192,7 @@ async def selection_callback(client, query):
     user_id = query.from_user.id
 
     if int(cmd[-1]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours', _html=False), show_alert=True)
         return
     elif cmd[1] == "link":
         await query.answer()
@@ -210,7 +211,7 @@ async def selection_callback(client, query):
                     message.text = f"/leech {response.text}"
                     await mirror_leech(client, message, isLeech=True)
         except TimeoutError:
-            await sendMessage("⏰ Too late 60s gone, try again!", message)
+            await sendMessage(tr('commands.batch.timeout'), message)
         finally:
             await question.delete()
     elif cmd[1] == "remotes":

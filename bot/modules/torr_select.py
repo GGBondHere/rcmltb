@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from pyrogram.handlers import CallbackQueryHandler
 from pyrogram import filters
 from asyncio import iscoroutinefunction
@@ -20,22 +21,17 @@ async def select(_, message):
         gid = msg[1]
         task = await getTaskByGid(gid)
         if task is None:
-            await sendMessage(f"🔍 <b>Task Not Found</b>\n\nGID: <code>{gid}</code>", message)
+            await sendMessage(tr('commands.task.not_found', gid=gid), message)
             return
     elif reply_to_id := message.reply_to_message_id:
         async with status_dict_lock:
             task = status_dict.get(reply_to_id)
         if task is None:
-            await sendMessage("📭 <b>No Active Task</b>\n\nThis message is not associated with an active task.", message)
+            await sendMessage(tr('commands.task.no_active'), message)
             return
     elif len(msg) == 1:
         help_msg = (
-            "📂 <b>File Selector</b>\n\n"
-            "Select specific files from an active torrent download.\n\n"
-            "<b>Usage:</b>\n"
-            "<code>/sel GID</code> — select by GID\n"
-            "Reply to task message with <code>/sel</code>\n\n"
-            "You can also use the <code>s</code> argument when starting a download to select files before downloading begins."
+            tr('commands.torrent.help')
         )
         await sendMessage(help_msg, message)
         return
@@ -44,10 +40,10 @@ async def select(_, message):
         and task.listener.user_id != user_id
         and (user_id not in user_data or not user_data[user_id].get("is_sudo"))
     ):
-        await sendMessage("🚫 <b>Access Denied</b>\n\nThis task does not belong to you.", message)
+        await sendMessage(tr('commands.task.access_denied'), message)
         return
     if not iscoroutinefunction(task.status):
-        await sendMessage("ℹ️ <b>Already Downloaded</b>\n\nThe download stage has already finished.", message)
+        await sendMessage(tr('commands.torrent.finished'), message)
         return
     current_status = await task.status()
     if current_status not in [
@@ -56,12 +52,12 @@ async def select(_, message):
         MirrorStatus.STATUS_QUEUEDL,
     ]:
         await sendMessage(
-            "⚠️ <b>Cannot Select</b>\n\nTask must be in downloading, paused, or queued status.",
+            tr('commands.torrent.cannot_select'),
             message,
         )
         return
     if task.name().startswith("[METADATA]") or task.name().startswith("Trying"):
-        await sendMessage("⏳ <b>Still Loading</b>\n\nPlease wait for metadata download to finish.", message)
+        await sendMessage(tr('commands.torrent.loading'), message)
         return
 
     try:
@@ -81,11 +77,11 @@ async def select(_, message):
                         )
         task.listener.select = True
     except Exception:
-        await sendMessage("❌ <b>Error</b>\n\nThis is not a bittorrent task.", message)
+        await sendMessage(tr('commands.torrent.not_torrent'), message)
         return
 
     SBUTTONS = bt_selection_buttons(id_)
-    msg = "📂 <b>File Selection</b>\n\nDownload paused. Choose files then press <b>Done Selecting</b> to resume."
+    msg = tr('commands.torrent.selection')
     await sendMessage(msg, message, SBUTTONS)
 
 
@@ -96,12 +92,12 @@ async def get_confirm(client, query):
     message = query.message
     task = await getTaskByGid(data[2])
     if task is None:
-        await query.answer("❌ This task has been cancelled!", show_alert=True)
+        await query.answer(tr('commands.torrent.cancelled', _html=False), show_alert=True)
         await deleteMessage(message)
         return
     if not hasattr(task, "seeding"):
         await query.answer(
-            "ℹ️ Download stage already finished. Keep this message to resume seeding if enabled.",
+            tr('commands.torrent.finished_popup', _html=False),
             show_alert=True,
         )
         return
@@ -110,7 +106,7 @@ async def get_confirm(client, query):
     else:
         return
     if user_id != listener.user_id:
-        await query.answer("⛔ This task does not belong to you!", show_alert=True)
+        await query.answer(tr('commands.torrent.not_yours', _html=False), show_alert=True)
     elif data[1] == "pin":
         await query.answer(data[3], show_alert=True)
     elif data[1] == "done":

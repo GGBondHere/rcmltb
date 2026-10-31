@@ -51,6 +51,7 @@ async def load_settings():
     elif saved_config := await db.settings.config.find_one({"_id": bot_id}):
         del saved_config["_id"]
         Config.load_dict(saved_config)
+        config_dict["BOT_UI_LANGUAGE"] = Config.BOT_UI_LANGUAGE
         for key, value in saved_config.items():
             environ[key] = str(value)
     if pf_dict := await db.settings.files.find_one({"_id": bot_id}):

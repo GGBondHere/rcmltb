@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import sleep
 from string import ascii_letters
 from random import SystemRandom
@@ -61,19 +62,19 @@ class TelegraphHelper:
         for content in telegraph_content:
             if nxt_page == 1:
                 content += (
-                    f'<b><a href="https://telegra.ph/{path[nxt_page]}">Next</a></b>'
+                    tr('helpers.telegraph.next_page', value1=path[nxt_page])
                 )
                 nxt_page += 1
             else:
                 if prev_page <= num_of_path:
-                    content += f'<b><a href="https://telegra.ph/{path[prev_page]}">Prev</a></b>'
+                    content += tr('helpers.text.prev', value1=path[prev_page])
                     prev_page += 1
                 if nxt_page < num_of_path:
-                    content += f'<b> | <a href="https://telegra.ph/{path[nxt_page]}">Next</a></b>'
+                    content += tr('helpers.telegraph.next_page_after_previous', value1=path[nxt_page])
                     nxt_page += 1
             await self.edit_page(
                 path=path[prev_page],
-                title="Rclone-Telegram-Bot Torrent Search",
+                title=tr('helpers.text.rclone_telegram_bot_torrent_search', _html=False),
                 content=content,
             )
         return

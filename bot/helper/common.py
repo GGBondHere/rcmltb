@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import create_subprocess_exec
 from html import escape
 from os import path as ospath, remove as osremove, walk
@@ -89,17 +90,17 @@ class TaskConfig:
             elif (not self.up_dest and default_upload == "gd") or self.up_dest == "gd":
                 self.up_dest = self.user_dict.get("GDRIVE_ID") or config_dict.get("GDRIVE_ID", "")
             if not self.up_dest:
-                raise ValueError("No Upload Destination!")
+                raise ValueError(tr('helpers.text.no_upload_destination', _html=False))
             if self.up_dest.startswith("rcl"):
                 from bot.helper.ext_utils.rclone_utils import is_rclone_config
                 if not await is_rclone_config(self.user_id, self.message, for_upload=True):
-                    raise ValueError("Rclone config not found!")
+                    raise ValueError(tr('helpers.text.rclone_config_not_found', _html=False))
             elif self.up_dest.startswith("gdl"):
-                raise ValueError("Google Drive interactive selection not yet supported for yt-dlp.")
+                raise ValueError(tr('helpers.text.google_drive_interactive_selection_not_yet_supported_for_yt_dlp', _html=False))
             elif is_rclone_path(self.up_dest):
                 self.up_dest = self.up_dest.rstrip("/")
             elif not is_gdrive_id(self.up_dest):
-                raise ValueError("Wrong Upload Destination!")
+                raise ValueError(tr('helpers.text.wrong_upload_destination', _html=False))
         else:
             self.up_dest = (
                 self.up_dest

@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from bot.helper.mirror_leech_utils.gd_utils.count import gdCount
 from pyrogram.handlers import MessageHandler
 from pyrogram.filters import command
@@ -25,26 +26,25 @@ async def count(_, message):
         link = reply_to.text.split(maxsplit=1)[0].strip()
 
     if is_gdrive_link(link):
-        msg = await sendMessage(f"🔢 <b>Counting Items</b>\n\nLink: <code>{link}</code>", message)
+        msg = await sendMessage(tr('commands.count.progress', link=link), message)
         name, mime_type, size, files, folders = await run_sync_to_async(
             gdCount().count, link, user.id
         )
         if mime_type is None:
-            await sendMessage(name, message)
+            await sendMessage(tr('commands.count.error', detail=name), message)
             return
         await deleteMessage(msg)
-        msg = "✅ <b>Count Complete</b>\n\n"
-        msg += f"<b>Name: </b><code>{name}</code>"
-        msg += f"\n\n<b>Size: </b>{get_readable_file_size(size)}"
-        msg += f"\n\n<b>Type: </b>{mime_type}"
+        msg = tr('commands.count.complete')
+        msg += tr('commands.count.name', name=name)
+        msg += tr('commands.count.size', size=get_readable_file_size(size))
+        msg += tr('commands.count.type', mime_type=tr('common.folder') if mime_type == 'Folder' else mime_type)
         if mime_type == "Folder":
-            msg += f"\n<b>SubFolders: </b>{folders}"
-            msg += f"\n<b>Files: </b>{files}"
-        msg += f"\n\n<b>cc: </b>{tag}"
+            msg += tr('commands.count.folders', folders=folders)
+            msg += tr('commands.count.files', files=files)
+        msg += tr('commands.count.mention', tag=raw(tag))
     else:
         msg = (
-            "❌ <b>Invalid Link</b>\n\n"
-            "Send a Google Drive link along with the command or reply to a message containing the link."
+            tr('commands.count.invalid_link')
         )
 
     await sendMessage(msg, message)

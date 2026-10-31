@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import create_subprocess_exec
 from asyncio.subprocess import PIPE
 from os import path as ospath
@@ -50,7 +51,7 @@ class RcloneLeech:
                     "-P",
                 ]
             else:
-                await self.__listener.onDownloadError("DEFAULT_GLOBAL_REMOTE not found")
+                await self.__listener.onDownloadError(tr('helpers.text.default_global_remote_not_found', _html=False))
                 return
         await setRcloneFlags(cmd, "download")
         gid = "".join(SystemRandom().choices(ascii_letters + digits, k=10))
@@ -71,7 +72,7 @@ class RcloneLeech:
             await self.__listener.onDownloadComplete()
         else:
             err_message = (await self.process.stderr.read()).decode()
-            await self.__listener.onDownloadError(f"Error: {err_message}!")
+            await self.__listener.onDownloadError(tr('helpers.task.backend_error', value1=err_message, _html=False))
 
     async def cancel_task(self):
         self.__is_cancelled = True
@@ -80,4 +81,4 @@ class RcloneLeech:
                 self.process.kill()
             except Exception:
                 pass
-        await self.__listener.onDownloadError("Download cancelled!")
+        await self.__listener.onDownloadError(tr('helpers.text.download_cancelled', _html=False, _user_id=self.__listener.user_id))

@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from asyncio import create_subprocess_exec
 from configparser import ConfigParser
 from bot import LOGGER, OWNER_ID, bot, config_dict
@@ -23,8 +24,8 @@ async def serve(client, message):
         else:
             button = ButtonMaker()
             url = f"{config_dict['RC_INDEX_URL']}:{config_dict['RC_INDEX_PORT']}"
-            msg = f"🖥️ <b>Server Status:</b>\nServing on <a href='{url}'>{url}</a>"
-            button.cb_buildbutton("🛑 Stop", "servemenu^stop")
+            msg = tr('commands.serve.status', url=url)
+            button.cb_buildbutton(tr('commands.button.stop', _html=False), "servemenu^stop")
             await sendMarkup(msg, message, button.build_menu(1))
 
 
@@ -43,7 +44,7 @@ async def serve_callback(client, query):
         button.cb_buildbutton("🌐 HTTP", "servemenu^http")
         button.cb_buildbutton("📡 WEBDAV", "servemenu^webdav")
         await editMarkup(
-            "📡 <b>Select Protocol</b>\nChoose a protocol to serve the remote:", message, button.build_menu(2)
+            tr('commands.serve.protocol'), message, button.build_menu(2)
         )
     elif data[1] == "all":
         cmd = [
@@ -85,11 +86,11 @@ async def serve_callback(client, query):
             ["kill", "-9", f"{process_dict['pid']}"]
         )
         if return_code == 0:
-            await query.answer(text="Server stopped", show_alert=True)
+            await query.answer(text=tr('commands.serve.stopped', _html=False), show_alert=True)
             process_dict["status"] = "inactive"
             await message.delete()
         else:
-            LOGGER.info(f"Error: {stderr}")
+            LOGGER.info(tr('commands.error.stderr', stderr=stderr))
             process_dict["status"] = "active"
     else:
         await query.answer()
@@ -99,10 +100,10 @@ async def serve_callback(client, query):
 async def rclone_serve(cmd, message):
     button = ButtonMaker()
     url = f"{config_dict['RC_INDEX_URL']}:{config_dict['RC_INDEX_PORT']}"
-    msg = f"🟢 <b>Server Started</b>\nServing on <a href='{url}'>{url}</a>"
-    msg += f"\n\n<b>User</b>: <code>{config_dict['RC_INDEX_USER']}</code>"
-    msg += f"\n<b>Pass</b>: <code>{config_dict['RC_INDEX_PASS']}</code>"
-    button.cb_buildbutton("🛑 Stop", "servemenu^stop")
+    msg = tr('commands.serve.started', url=url)
+    msg += tr('commands.serve.user', username=config_dict['RC_INDEX_USER'])
+    msg += tr('commands.serve.password', password=config_dict['RC_INDEX_PASS'])
+    button.cb_buildbutton(tr('commands.button.stop', _html=False), "servemenu^stop")
     await editMarkup(msg, message, button.build_menu(1))
 
     process = await create_subprocess_exec(*cmd, stdout=PIPE, stderr=PIPE)
@@ -112,7 +113,7 @@ async def rclone_serve(cmd, message):
     stderr = stderr.decode().strip()
 
     if process.returncode != 0:
-        LOGGER.info(f"Error: {stderr}")
+        LOGGER.info(tr('commands.error.stderr', stderr=stderr))
         process_dict["status"] = "inactive"
 
 
@@ -124,10 +125,10 @@ async def list_remotes(message):
     conf.read(path)
     for remote in conf.sections():
         button.cb_buildbutton(f"📁{remote}", f"servemenu^remote^{remote}")
-    button.cb_buildbutton("🌐 All", "servemenu^all")
-    button.cb_buildbutton("✘ Close Menu", "servemenu^close")
+    button.cb_buildbutton(tr('commands.serve.all', _html=False), "servemenu^all")
+    button.cb_buildbutton(tr('commands.button.close_menu', _html=False), "servemenu^close")
     await sendMarkup(
-        "📁 <b>Select Remote</b>\nSelect a cloud to serve as index:", message, reply_markup=button.build_menu(2)
+        tr('commands.serve.remote'), message, reply_markup=button.build_menu(2)
     )
 
 

@@ -9,6 +9,8 @@ from asyncio import (
 from asyncio.subprocess import PIPE
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial, wraps
+from contextvars import copy_context
+from bot.i18n import tr, raw, display_status, status_locale
 from html import escape
 from time import time
 from os import walk, path as ospath, remove as osremove, rmdir, listdir
@@ -229,6 +231,7 @@ def get_size_bytes(size_text):
         return 0
 
 
+@status_locale
 async def get_readable_message(chat_id=None, status_filter="all"):
     msg = ""
     button = None
@@ -285,18 +288,25 @@ async def get_readable_message(chat_id=None, status_filter="all"):
             download_uploaded = await _get_attr(download, "uploaded_bytes", "0B")
             download_ratio = await _get_attr(download, "ratio", "0.0")
             download_seeding_time = await _get_attr(download, "seeding_time", "0s")
+            status_label = display_status(status)
+            if status in (MirrorStatus.STATUS_DOWNLOADING, MirrorStatus.STATUS_QUEUEDL):
+                processed_label = tr("helpers.status.downloaded")
+            elif status in (MirrorStatus.STATUS_UPLOADING, MirrorStatus.STATUS_QUEUEUP):
+                processed_label = tr("helpers.status.uploaded")
+            else:
+                processed_label = tr("helpers.status.processed")
 
             if download.message.chat.type.name in ["SUPERGROUP", "CHANNEL"]:
-                msg += f"<b><a href='{download.message.link}'>{status}</a>: </b>"
+                msg += f"<b><a href='{escape(download.message.link, quote=True)}'>{status_label}</a>: </b>"
             else:
-                msg += f"<b>{status}: </b>"
+                msg += f"<b>{status_label}: </b>"
             if download_type == TaskType.RCLONE:
-                msg += f"\n<code>{str(download_name)}</code>"
+                msg += f"\n<code>{escape(str(download_name))}</code>"
             else:
                 msg += f"\n<code>{escape(f'{download_name}')}</code>"
             download_summary = await _get_attr(download, "summary", "")
             if download_summary:
-                msg += f"\n<b>Media:</b> {escape(download_summary)}"
+                msg += tr("helpers.status.media", summary=download_summary)
             if status not in [
                 MirrorStatus.STATUS_SPLITTING,
                 MirrorStatus.STATUS_SEEDING,
@@ -306,28 +316,28 @@ async def get_readable_message(chat_id=None, status_filter="all"):
                     or download_type == TaskType.RCLONE_SYNC
                 ):
                     msg += f"\n{get_progress_bar_rclone(download_progress)} {download_progress}%"
-                    msg += f"\n<b>Processed:</b> {download_processed}"
+                    msg += tr("helpers.status.progress", label=processed_label, processed=download_processed)
                 else:
                     msg += f"\n{get_progress_bar_string(download_progress)} {download_progress}"
-                    msg += f"\n<b>Processed:</b> {download_processed} of {download_size}"
+                    msg += tr("helpers.status.progress_total", label=processed_label, processed=download_processed, total=download_size)
                 if queue:
-                    msg += f"\n<b>Enqueue:</b> {queue.queue.qsize()}/{queue.queue.maxsize}"
-                msg += f"\n<b>Speed:</b> {download_speed} | <b>ETA:</b> {download_eta}"
+                    msg += tr("helpers.status.enqueue", count=queue.queue.qsize(), limit=queue.queue.maxsize)
+                msg += tr("helpers.status.speed_eta", speed=download_speed, eta=download_eta)
                 if hasattr(download, "seeders_num"):
                     try:
                         seeders = await _get_attr(download, "seeders_num", 0)
                         leechers = await _get_attr(download, "leechers_num", 0)
-                        msg += f"\n<b>Seeders:</b> {seeders} | <b>Leechers:</b> {leechers}"
+                        msg += tr("helpers.status.peers", seeders=seeders, leechers=leechers)
                     except Exception:
                         pass
             elif status == MirrorStatus.STATUS_SEEDING:
-                msg += f"\n<b>Size: </b>{download_size}"
-                msg += f"\n<b>Speed: </b>{download_upload_speed}"
-                msg += f" | <b>Uploaded: </b>{download_uploaded}"
-                msg += f"\n<b>Ratio: </b>{download_ratio}"
-                msg += f" | <b>Time: </b>{download_seeding_time}"
+                msg += tr("helpers.status.size", size=download_size)
+                msg += tr("helpers.status.seed_speed", speed=download_upload_speed)
+                msg += tr("helpers.status.seed_uploaded", uploaded=download_uploaded)
+                msg += tr("helpers.status.seed_ratio", ratio=download_ratio)
+                msg += tr("helpers.status.seed_time", time=download_seeding_time)
             else:
-                msg += f"\n<b>Size: </b>{download_size}"
+                msg += tr("helpers.status.size", size=download_size)
             msg += f"\n<code>/{BotCommands.CancelCommand} {download_gid}</code>\n\n"
         if len(msg) == 0:
             return None, None
@@ -347,12 +357,12 @@ async def get_readable_message(chat_id=None, status_filter="all"):
 
         # Add filter buttons
         filter_labels = {
-            "all": "All",
-            "dl": "DL",
-            "ul": "UL",
-            "seed": "Seed",
-            "clone": "Clone",
-            "queue": "Queue",
+            "all": tr("helpers.status.filter_all", _html=False),
+            "dl": tr("helpers.status.filter_dl", _html=False),
+            "ul": tr("helpers.status.filter_ul", _html=False),
+            "seed": tr("helpers.status.filter_seed", _html=False),
+            "clone": tr("helpers.status.filter_clone", _html=False),
+            "queue": tr("helpers.status.filter_queue", _html=False),
         }
         for filter_key, filter_label in filter_labels.items():
             prefix = "✓" if status_filter == filter_key else ""
@@ -372,9 +382,9 @@ async def get_readable_message(chat_id=None, status_filter="all"):
         buttons.cb_buildbutton("♻️", "status ref")
         button = buttons.build_menu(3)
 
-        msg += f"<b>CPU:</b> {cpu_percent()}% | <b>FREE:</b> {get_readable_file_size(disk_usage(config_dict['DOWNLOAD_DIR']).free)}"
-        msg += f"\n<b>RAM:</b> {virtual_memory().percent}% | <b>UPTIME:</b> {get_readable_time(time() - botUptime)}"
-        msg += f"\n<b>DL:</b> {get_readable_file_size(dl_speed)}/s | <b>UL:</b> {get_readable_file_size(up_speed)}/s"
+        msg += tr("helpers.status.cpu_free", cpu=cpu_percent(), free=get_readable_file_size(disk_usage(config_dict['DOWNLOAD_DIR']).free))
+        msg += tr("helpers.status.ram_uptime", ram=virtual_memory().percent, uptime=get_readable_time(time() - botUptime))
+        msg += tr("helpers.status.transfer_speeds", download=get_readable_file_size(dl_speed), upload=get_readable_file_size(up_speed))
         return msg, button
     except Exception as e:
         import traceback
@@ -464,7 +474,7 @@ class setInterval:
 
 async def run_sync_to_async(func, *args, wait=True, **kwargs):
     pfunc = partial(func, *args, **kwargs)
-    future = bot_loop.run_in_executor(THREADPOOL, pfunc)
+    future = bot_loop.run_in_executor(THREADPOOL, copy_context().run, pfunc)
     if wait:
         return await future
     else:

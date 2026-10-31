@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from bot import (
     status_dict,
     status_dict_lock,
@@ -24,28 +25,18 @@ async def remove_from_queue(_, message):
         gid = msg[2] if status else msg[1]
         task = await getTaskByGid(gid)
         if task is None:
-            await sendMessage(f"🔍 <b>Task Not Found</b>\n\nGID: <code>{gid}</code>", message)
+            await sendMessage(tr('commands.task.not_found', gid=gid), message)
             return
     elif reply_to_id := message.reply_to_message_id:
         async with status_dict_lock:
             task = status_dict.get(reply_to_id)
         if task is None:
-            await sendMessage("📭 <b>No Active Task</b>\n\nThis message is not associated with an active task.", message)
+            await sendMessage(tr('commands.task.no_active'), message)
             return
     elif len(msg) in {1, 2}:
         cmds = BotCommands.ForceStartCommand
         help_msg = (
-            "⚡ <b>Force Start</b>\n\n"
-            "Bypass queue limits and start a task immediately.\n\n"
-            "<b>Usage:</b>\n"
-            f"<code>/{cmds[0]}</code> — force download + upload (reply to task)\n"
-            f"<code>/{cmds[0]} fd</code> — force download only (reply to task)\n"
-            f"<code>/{cmds[0]} fu</code> — force upload only (reply to task)\n"
-            f"<code>/{cmds[0]} GID</code> — force by GID\n"
-            f"<code>/{cmds[1]} GID fu</code> — force upload by GID\n\n"
-            "<b>Flags:</b>\n"
-            "• <code>fd</code> — force download\n"
-            "• <code>fu</code> — force upload"
+            tr('commands.force.help', command=cmds[0], command_alias=cmds[1])
         )
         await sendMessage(help_msg, message)
         return
@@ -54,7 +45,7 @@ async def remove_from_queue(_, message):
         and task.listener.user_id != user_id
         and (user_id not in user_data or not user_data[user_id].get("is_sudo"))
     ):
-        await sendMessage("🚫 <b>Access Denied</b>\n\nThis task does not belong to you.", message)
+        await sendMessage(tr('commands.task.access_denied'), message)
         return
     listener = task.listener
     result_msg = ""
@@ -63,26 +54,26 @@ async def remove_from_queue(_, message):
             listener.force_upload = True
             if listener.uid in queued_up:
                 await start_up_from_queued(listener.uid)
-                result_msg = "<b>Force Start</b>\n\nTask bypassed upload queue and started uploading."
+                result_msg = tr('commands.force.upload_started_plain')
             else:
-                result_msg = "⚡ <b>Force Start</b>\n\nForce upload enabled for this task."
+                result_msg = tr('commands.force.upload_enabled')
         elif status == "fd":
             listener.force_download = True
             if listener.uid in queued_dl:
                 await start_dl_from_queued(listener.uid)
-                result_msg = "⚡ <b>Force Start</b>\n\nTask bypassed download queue and started downloading."
+                result_msg = tr('commands.force.download_started')
             else:
-                result_msg = "ℹ️ <b>Force Start</b>\n\nThis task is not in the download queue."
+                result_msg = tr('commands.force.no_download_queue')
         else:
             listener.force_download = True
             listener.force_upload = True
             if listener.uid in queued_up:
                 await start_up_from_queued(listener.uid)
-                result_msg = "⚡ <b>Force Start</b>\n\nTask bypassed upload queue and started uploading."
+                result_msg = tr('commands.force.upload_started')
             elif listener.uid in queued_dl:
                 await start_dl_from_queued(listener.uid)
-                result_msg = "⚡ <b>Force Start</b>\n\nTask bypassed download queue. Upload will start once download finishes."
+                result_msg = tr('commands.force.download_then_upload')
             else:
-                result_msg = "ℹ️ <b>Force Start</b>\n\nThis task is not in any queue."
+                result_msg = tr('commands.force.no_queue')
     if result_msg:
         await sendMessage(result_msg, message)

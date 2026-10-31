@@ -11,6 +11,7 @@ TELEGRAM_API_ID = 0
 TELEGRAM_API_HASH = ""
 
 # Common
+BOT_UI_LANGUAGE = "zh-CN"  # zh-CN or en
 DOWNLOAD_DIR = "/usr/src/app/downloads/"
 DATABASE_URL = ""
 CMD_INDEX = ""

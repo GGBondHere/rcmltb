@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import sleep
 from os import path as ospath, remove as osremove
 from time import time
@@ -84,7 +85,7 @@ async def __onBtDownloadComplete(api, data):
                     if not config_dict["NO_TASKS_LOGS"]:
                         LOGGER.info(f"Cancelling Seed: {aria2_name(download)}")
                     await listener.onUploadError(
-                        f"Seeding stopped with Ratio: {dl.ratio()} and Time: {dl.seeding_time()}"
+                        tr('helpers.text.seeding_stopped_with_ratio_and_time', value1=dl.ratio(), value2=dl.seeding_time(), _user_id=listener.user_id, _html=False)
                     )
                     await TorrentManager.aria2_remove(download)
             else:
@@ -112,7 +113,7 @@ async def __onDownloadStopped(api, data):
     await sleep(6)
     if dl := await getTaskByGid(gid):
         listener = dl.listener()
-        await listener.onDownloadError("Dead torrent!")
+        await listener.onDownloadError(tr('helpers.text.dead_torrent', _user_id=listener.user_id, _html=False))
 
 
 async def __onDownloadError(api, data):

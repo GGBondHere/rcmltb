@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw, ui_error
 from time import time
 from asyncio import sleep
 from os import path as ospath, remove as osremove
@@ -42,7 +43,7 @@ async def add_qb_torrent(link, path, listener, ratio, seed_time):
                 f"{e}. {listener.uid}. Already added torrent or unsupported link/file type!"
             )
             await sendMessage(
-                f"{e}. {listener.uid}. Already added torrent or unsupported link/file type!",
+                tr('helpers.text.already_added_torrent_or_unsupported_link_file_type', value1=e, value2=listener.uid, _html=False),
                 listener.message,
             )
             return
@@ -56,7 +57,7 @@ async def add_qb_torrent(link, path, listener, ratio, seed_time):
                 if len(tor_info) > 0:
                     break
                 elif time() - ADD_TIME >= 120:
-                    msg = "Not added! Check if the link is valid or not. If it's torrent file then report, this happens if torrent file size above 10mb."
+                    msg = tr('helpers.text.not_added_check_if_the_link_is_valid_or_not_if_it', _html=False)
                     await sendMessage(msg, listener.message)
                     return
                 await sleep(1)
@@ -76,7 +77,7 @@ async def add_qb_torrent(link, path, listener, ratio, seed_time):
 
         if config_dict["QB_BASE_URL"] and listener.select:
             if link.startswith("magnet:"):
-                metamsg = "Downloading Metadata, wait then you can select files. Use torrent file to avoid this wait."
+                metamsg = tr('helpers.text.downloading_metadata_wait_then_you_can_select_files_use_torrent_file_to', _html=False)
                 meta = await sendMessage(metamsg, listener.message)
                 while True:
                     tor_info = await TorrentManager.qbittorrent.torrents.info(
@@ -101,12 +102,12 @@ async def add_qb_torrent(link, path, listener, ratio, seed_time):
             ext_hash = tor_info.hash
             await TorrentManager.qbittorrent.torrents.stop(hashes=[ext_hash])
             SBUTTONS = bt_selection_buttons(ext_hash)
-            msg = "Your download paused. Choose files then press Done Selecting button to start downloading."
+            msg = tr('helpers.text.your_download_paused_choose_files_then_press_done_selecting_button_to_start', _html=False)
             await sendMarkup(msg, listener.message, SBUTTONS)
         else:
             await sendStatusMessage(listener.message)
     except Exception as e:
-        await sendMessage(str(e), listener.message)
+        await sendMessage(ui_error(e), listener.message)
     finally:
         if ospath.exists(link):
             osremove(link)

@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import create_subprocess_exec
 from asyncio.subprocess import PIPE
 from configparser import ConfigParser
@@ -130,4 +131,4 @@ class RcloneCopy:
                 self.process.kill()
             except Exception:
                 pass
-        await self.__listener.onDownloadError("Copy cancelled!")
+        await self.__listener.onDownloadError(tr('helpers.text.copy_cancelled', _html=False, _user_id=self.__listener.user_id))

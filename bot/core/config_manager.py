@@ -12,6 +12,7 @@ class Config:
     AUTO_MIRROR = False
     BOT_TOKEN = ""
     BOT_PM = False
+    BOT_UI_LANGUAGE = "zh-CN"
     CMD_INDEX = ""
     DATABASE_URL = ""
     DEFAULT_OWNER_REMOTE = ""
@@ -72,6 +73,10 @@ class Config:
 
     @classmethod
     def _convert(cls, key: str, value):
+        if key == "BOT_UI_LANGUAGE":
+            if value not in ("zh-CN", "en"):
+                raise ValueError("BOT_UI_LANGUAGE must be zh-CN or en")
+            return value
         if not hasattr(cls, key):
             raise KeyError(f"{key} is not a valid configuration key.")
 
@@ -162,6 +167,8 @@ class Config:
 
     @classmethod
     def _process_config_value(cls, attr: str, value):
+        if attr == "BOT_UI_LANGUAGE":
+            return cls._convert(attr, value)
         if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
 

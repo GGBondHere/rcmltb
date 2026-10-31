@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw, localized_handler
 from asyncio import Event, wait_for
 from functools import partial
 from os import path as ospath
@@ -48,7 +49,7 @@ async def select_format(_, query, obj):
     elif data[1] == "back":
         await obj.back_to_main()
     elif data[1] == "cancel":
-        await editMessage("Task has been cancelled.", message)
+        await editMessage(tr('commands.ytdlp.cancelled'), message)
         obj.qual = None
         obj.listener.is_cancelled = True
         obj.event.set()
@@ -78,15 +79,15 @@ class YtSelection:
     async def _event_handler(self):
         pfunc = partial(select_format, obj=self)
         handler = self.listener.client.add_handler(
-            CallbackQueryHandler(
+            localized_handler(CallbackQueryHandler(
                 pfunc, filters=regex("^ytq") & user(self.listener.user_id)
-            ),
+            )),
             group=-1,
         )
         try:
             await wait_for(self.event.wait(), timeout=self._timeout)
         except Exception:
-            await editMessage("Timed Out. Task has been cancelled!", self._reply_to)
+            await editMessage(tr('commands.ytdlp.timeout'), self._reply_to)
             self.qual = None
             self.listener.is_cancelled = True
             self.event.set()
@@ -107,12 +108,12 @@ class YtSelection:
                 self.formats[b_data] = video_format
                 buttons.cb_buildbutton(f"{i}-webm", f"ytq {b_data}")
             buttons.cb_buildbutton("MP3", "ytq mp3")
-            buttons.cb_buildbutton("Audio Formats", "ytq audio")
-            buttons.cb_buildbutton("Best Videos", "ytq bv*+ba/b")
-            buttons.cb_buildbutton("Best Audios", "ytq ba/b")
-            buttons.cb_buildbutton("Cancel", "ytq cancel", "footer")
+            buttons.cb_buildbutton(tr('commands.ytdlp.audio_formats', _html=False), "ytq audio")
+            buttons.cb_buildbutton(tr('commands.ytdlp.best_videos', _html=False), "ytq bv*+ba/b")
+            buttons.cb_buildbutton(tr('commands.ytdlp.best_audios', _html=False), "ytq ba/b")
+            buttons.cb_buildbutton(tr('commands.button.cancel', _html=False), "ytq cancel", "footer")
             self._main_buttons = buttons.build_menu(3)
-            msg = f"Choose Playlist Videos Quality:\nTimeout: {human_readable_timedelta(self._timeout - (time() - self._time))}"
+            msg = tr('commands.ytdlp.playlist_quality', remaining=human_readable_timedelta(self._timeout - (time() - self._time)))
         else:
             format_dict = result.get("formats")
             if format_dict is not None:
@@ -158,12 +159,12 @@ class YtSelection:
                     else:
                         buttons.cb_buildbutton(b_name, f"ytq dict {b_name}")
             buttons.cb_buildbutton("MP3", "ytq mp3")
-            buttons.cb_buildbutton("Audio Formats", "ytq audio")
-            buttons.cb_buildbutton("Best Video", "ytq bv*+ba/b")
-            buttons.cb_buildbutton("Best Audio", "ytq ba/b")
-            buttons.cb_buildbutton("Cancel", "ytq cancel", "footer")
+            buttons.cb_buildbutton(tr('commands.ytdlp.audio_formats', _html=False), "ytq audio")
+            buttons.cb_buildbutton(tr('commands.ytdlp.best_video', _html=False), "ytq bv*+ba/b")
+            buttons.cb_buildbutton(tr('commands.ytdlp.best_audio', _html=False), "ytq ba/b")
+            buttons.cb_buildbutton(tr('commands.button.cancel', _html=False), "ytq cancel", "footer")
             self._main_buttons = buttons.build_menu(2)
-            msg = f"Choose Video Quality:\nTimeout: {human_readable_timedelta(self._timeout - (time() - self._time))}"
+            msg = tr('commands.ytdlp.video_quality', remaining=human_readable_timedelta(self._timeout - (time() - self._time)))
 
         self._reply_to = await sendMessage(msg, self.listener.message, self._main_buttons)
         await self._event_handler()
@@ -172,10 +173,20 @@ class YtSelection:
         return self.qual
 
     async def back_to_main(self):
+        labels = {
+            "ytq audio": "commands.ytdlp.audio_formats",
+            "ytq bv*+ba/b": "commands.ytdlp.best_videos" if self._is_playlist else "commands.ytdlp.best_video",
+            "ytq ba/b": "commands.ytdlp.best_audios" if self._is_playlist else "commands.ytdlp.best_audio",
+            "ytq cancel": "commands.button.cancel",
+        }
+        for row in self._main_buttons.inline_keyboard:
+            for button in row:
+                if key := labels.get(button.callback_data):
+                    button.text = tr(key, _html=False)
         if self._is_playlist:
-            msg = f"Choose Playlist Videos Quality:\nTimeout: {human_readable_timedelta(self._timeout - (time() - self._time))}"
+            msg = tr('commands.ytdlp.playlist_quality', remaining=human_readable_timedelta(self._timeout - (time() - self._time)))
         else:
-            msg = f"Choose Video Quality:\nTimeout: {human_readable_timedelta(self._timeout - (time() - self._time))}"
+            msg = tr('commands.ytdlp.video_quality', remaining=human_readable_timedelta(self._timeout - (time() - self._time)))
         await editMessage(msg, self._reply_to, self._main_buttons)
 
     async def qual_subbuttons(self, b_name):
@@ -184,47 +195,47 @@ class YtSelection:
         for tbr, d_data in tbr_dict.items():
             button_name = f"{tbr}K ({get_readable_file_size(d_data[0])})"
             buttons.cb_buildbutton(button_name, f"ytq sub {b_name} {tbr}")
-        buttons.cb_buildbutton("Back", "ytq back", "footer")
-        buttons.cb_buildbutton("Cancel", "ytq cancel", "footer")
+        buttons.cb_buildbutton(tr('commands.button.back', _html=False), "ytq back", "footer")
+        buttons.cb_buildbutton(tr('commands.button.cancel', _html=False), "ytq cancel", "footer")
         subbuttons = buttons.build_menu(2)
-        msg = f"Choose Bit rate for <b>{b_name}</b>:\nTimeout: {human_readable_timedelta(self._timeout - (time() - self._time))}"
+        msg = tr('commands.ytdlp.bitrate', b_name=b_name, remaining=human_readable_timedelta(self._timeout - (time() - self._time)))
         await editMessage(msg, self._reply_to, subbuttons)
 
     async def mp3_subbuttons(self):
-        i = "s" if self._is_playlist else ""
+        count = 2 if self._is_playlist else 1
         buttons = ButtonMaker()
         audio_qualities = [64, 128, 320]
         for q in audio_qualities:
             audio_format = f"ba/b-mp3-{q}"
             buttons.cb_buildbutton(f"{q}K-mp3", f"ytq {audio_format}")
-        buttons.cb_buildbutton("Back", "ytq back")
-        buttons.cb_buildbutton("Cancel", "ytq cancel")
+        buttons.cb_buildbutton(tr('commands.button.back', _html=False), "ytq back")
+        buttons.cb_buildbutton(tr('commands.button.cancel', _html=False), "ytq cancel")
         subbuttons = buttons.build_menu(3)
-        msg = f"Choose mp3 Audio{i} Bitrate:\nTimeout: {human_readable_timedelta(self._timeout - (time() - self._time))}"
+        msg = tr('commands.ytdlp.mp3_bitrate', count=count, remaining=human_readable_timedelta(self._timeout - (time() - self._time)))
         await editMessage(msg, self._reply_to, subbuttons)
 
     async def audio_format(self):
-        i = "s" if self._is_playlist else ""
+        count = 2 if self._is_playlist else 1
         buttons = ButtonMaker()
         for frmt in ["aac", "alac", "flac", "m4a", "opus", "vorbis", "wav"]:
             audio_format = f"ba/b-{frmt}-"
             buttons.cb_buildbutton(frmt, f"ytq aq {audio_format}")
-        buttons.cb_buildbutton("Back", "ytq back", "footer")
-        buttons.cb_buildbutton("Cancel", "ytq cancel", "footer")
+        buttons.cb_buildbutton(tr('commands.button.back', _html=False), "ytq back", "footer")
+        buttons.cb_buildbutton(tr('commands.button.cancel', _html=False), "ytq cancel", "footer")
         subbuttons = buttons.build_menu(3)
-        msg = f"Choose Audio{i} Format:\nTimeout: {human_readable_timedelta(self._timeout - (time() - self._time))}"
+        msg = tr('commands.ytdlp.audio_format', count=count, remaining=human_readable_timedelta(self._timeout - (time() - self._time)))
         await editMessage(msg, self._reply_to, subbuttons)
 
     async def audio_quality(self, format):
-        i = "s" if self._is_playlist else ""
+        count = 2 if self._is_playlist else 1
         buttons = ButtonMaker()
         for qual in range(11):
             audio_format = f"{format}{qual}"
             buttons.cb_buildbutton(qual, f"ytq {audio_format}")
-        buttons.cb_buildbutton("Back", "ytq aq back")
-        buttons.cb_buildbutton("Cancel", "ytq aq cancel")
+        buttons.cb_buildbutton(tr('commands.button.back', _html=False), "ytq aq back")
+        buttons.cb_buildbutton(tr('commands.button.cancel', _html=False), "ytq aq cancel")
         subbuttons = buttons.build_menu(5)
-        msg = f"Choose Audio{i} Quality:\n0 is best and 10 is worst\nTimeout: {human_readable_timedelta(self._timeout - (time() - self._time))}"
+        msg = tr('commands.ytdlp.audio_quality', count=count, remaining=human_readable_timedelta(self._timeout - (time() - self._time)))
         await editMessage(msg, self._reply_to, subbuttons)
 
 
@@ -232,7 +243,7 @@ def extract_info(link, options):
     with YoutubeDL(options) as ydl:
         result = ydl.extract_info(link, download=False)
         if result is None:
-            raise ValueError("Info result is None")
+            raise ValueError(tr('commands.ytdlp.empty_info'))
         return result
 
 
@@ -304,7 +315,7 @@ class YtDlp(TaskListener):
         try:
             arg_parser(input_list[0].split(" ")[1:], args)
         except (ValueError, TypeError) as error:
-            await sendMessage(f"Invalid yt-dlp options: {escape(str(error))}", self.message)
+            await sendMessage(tr('commands.ytdlp.invalid_options', detail=raw(escape(str(error)))), self.message)
             return
 
         self.multi = int(args["-i"]) if args["-i"] else 0
@@ -368,7 +379,7 @@ class YtDlp(TaskListener):
                 or self.user_dict.get("YT_DLP_OPTIONS") or config_dict.get("YT_DLP_OPTIONS", "")
             )
         except (ValueError, TypeError) as error:
-            await sendMessage(f"Invalid yt-dlp options: {escape(str(error))}", self.message)
+            await sendMessage(tr('commands.ytdlp.invalid_options', detail=raw(escape(str(error)))), self.message)
             return
 
         if not self.link and (reply_to := self.message.reply_to_message):
@@ -390,7 +401,7 @@ class YtDlp(TaskListener):
         try:
             await self.before_start()
         except Exception as e:
-            await sendMessage(str(e), self.message)
+            await sendMessage(tr('commands.ytdlp.error', tag=raw(self.tag), detail=str(e)), self.message)
             return
 
         options = {
@@ -412,7 +423,7 @@ class YtDlp(TaskListener):
             result = await run_sync_to_async(extract_info, self.link, options)
         except Exception as e:
             msg = str(e).replace("<", " ").replace(">", " ")
-            await sendMessage(f"{self.tag} {msg}", self.message)
+            await sendMessage(tr('commands.ytdlp.error', tag=raw(self.tag), detail=msg), self.message)
             return
 
         await self.run_multi(input_list)

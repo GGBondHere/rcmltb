@@ -1,5 +1,7 @@
 """A FIFO Asynchronous Queue """
 
+from bot.i18n import tr
+from contextvars import Context, copy_context
 from asyncio import (
     sleep,
     CancelledError,
@@ -29,23 +31,29 @@ async def queue_worker(name, queue):
         try:
             queue_item = await queue.get()
             LOGGER.info(f"{name} is processing queue item: {queue_item}")
-            resp = await safe_run(
-                queue_item.task,
-                queue_item.task_args,
-                queue_item.exception_callback,
-                queue_item.exception_callback_args,
-                bot_loop,
+            resp = await queue_item.context.run(
+                bot_loop.create_task,
+                safe_run(
+                    queue_item.task,
+                    queue_item.task_args,
+                    queue_item.exception_callback,
+                    queue_item.exception_callback_args,
+                    bot_loop,
+                ),
             )
             if queue_item.done_callback:
                 args = queue_item.done_callback_args or ()
                 if resp and queue_item.pass_result_to_done_callback:
                     args = (resp,) + args
-                await safe_run(
-                    queue_item.done_callback,
-                    args,
-                    queue_item.exception_callback,
-                    queue_item.exception_callback_args,
-                    bot_loop,
+                await queue_item.context.run(
+                    bot_loop.create_task,
+                    safe_run(
+                        queue_item.done_callback,
+                        args,
+                        queue_item.exception_callback,
+                        queue_item.exception_callback_args,
+                        bot_loop,
+                    ),
                 )
             queue.task_done()
         except RuntimeError as runtime_error:
@@ -76,7 +84,7 @@ async def safe_run(
         elif inspect.iscoroutinefunction(task):
             resp = await task(*task_args or {})
         elif inspect.isfunction(task) or inspect.ismethod(task):
-            resp = await loop.run_in_executor(None, task, *task_args or {})
+            resp = await loop.run_in_executor(None, copy_context().run, task, *task_args or {})
         else:
             LOGGER.error("%s is not a coroutine or function", task, stack_info=True)
     # catching all exceptions is bad, but this is a background task
@@ -93,6 +101,7 @@ async def safe_run(
             ):
                 await loop.run_in_executor(
                     None,
+                    copy_context().run,
                     exception_callback,
                     exception,
                     *exception_callback_args or {},
@@ -128,6 +137,7 @@ class QueueItem:
     exception_callback_args: typing.Optional[tuple] = dataclasses.field(
         default_factory=tuple
     )
+    context: Context = dataclasses.field(default_factory=copy_context, repr=False, compare=False)
 
     # Make the QueueItem sortable (by priority)
     def __lt__(self, other: "QueueItem"):
@@ -230,7 +240,7 @@ async def add_to_queue(message, task, *args, **kwargs):
         return await bot.send_message(
             message.chat.id,
             reply_parameters=ReplyParameters(message_id=message.id),
-            text="Queue is full, wait for a slot to be available..",
+            text=tr('commands.queue.full'),
         )
     await queue.put(
         QueueItem(priority=1, task=task(*args, **kwargs)),

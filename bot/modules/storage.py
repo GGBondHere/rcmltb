@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from html import escape as html_escape
 from json import loads
 from math import floor
@@ -31,7 +32,7 @@ async def storage_menu_cb(client, callback_query):
     user_id = query.from_user.id
 
     if int(cmd[-1]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours', _html=False), show_alert=True)
         return
     if cmd[1] == "remote":
         await rclone_about(message, query, cmd[2], user_id)
@@ -53,13 +54,13 @@ async def rclone_about(message, query, remote_name, user_id):
     stdout = stdout.decode().strip()
     if return_code != 0:
         err = html_escape(stderr.decode().strip())
-        await sendMessage(f"<b>Error:</b> <code>{err}</code>", message)
+        await sendMessage(tr('commands.error.code', err=raw(err)), message)
         return
     info = loads(stdout)
     if len(info) == 0:
-        await query.answer("💾 Team Drive with Unlimited Storage", show_alert=True)
+        await query.answer(tr('commands.storage.unlimited', _html=False), show_alert=True)
         return
-    result_msg = "💾 <b>Storage Details</b>\n"
+    result_msg = tr('commands.storage.title')
     try:
         used = get_readable_file_size(info["used"])
         total = get_readable_file_size(info["total"])
@@ -70,16 +71,16 @@ async def rclone_about(message, query, remote_name, user_id):
         free_percentage = round((info["free"] * 100) / info["total"], 2)
         free_percentage = f"{free_percentage}%"
         result_msg += f"\n<code>{used_bar}</code>"
-        result_msg += f"\n<b>Used:</b> <code>{used}</code> of <code>{total}</code>"
-        result_msg += f"\n<b>Free:</b> <code>{free}</code> of <code>{total}</code>"
-        result_msg += f"\n<b>Trashed:</b> <code>{get_readable_file_size(info['trashed'])}</code>"
-        result_msg += f"\n\n<b>Storage Used:</b> <code>{used_percentage}</code>"
-        result_msg += f"\n<b>Storage Free:</b> <code>{free_percentage}</code>"
+        result_msg += tr('commands.storage.used', used=used, total=total)
+        result_msg += tr('commands.storage.free', free=free, total=total)
+        result_msg += tr('commands.storage.trashed', trashed=get_readable_file_size(info['trashed']))
+        result_msg += tr('commands.storage.used_percent', used_percentage=used_percentage)
+        result_msg += tr('commands.storage.free_percent', free_percentage=free_percentage)
     except KeyError:
-        result_msg += "\n<b>N/A</b>"
-    button.cb_buildbutton("⬅️ Back", f"storagemenu^back^{user_id}", "footer")
+        result_msg += tr('commands.storage.unavailable')
+    button.cb_buildbutton(tr('commands.button.back_arrow', _html=False), f"storagemenu^back^{user_id}", "footer")
     button.cb_buildbutton(
-        "✘ Close Menu", f"storagemenu^close^{user_id}", "footer_second"
+        tr('commands.button.close_menu', _html=False), f"storagemenu^close^{user_id}", "footer_second"
     )
     await editMarkup(result_msg, message, reply_markup=button.build_menu(1))
 

@@ -1,3 +1,4 @@
+from bot.i18n import tr, error_detail
 from argparse import ArgumentParser
 from bot import DOWNLOAD_DIR, OWNER_ID, bot, app, config_dict, user_data, IS_PREMIUM_USER
 from asyncio import TimeoutError, sleep
@@ -65,7 +66,7 @@ async def handle_jd_mirror(client, message):
 
     if not jdownloader.is_connected:
         await sendMessage(
-            "JDownloader is not connected. Please check JD_EMAIL and JD_PASSWORD configuration.",
+            tr('commands.mirror.jd_disconnected'),
             message
         )
         return
@@ -78,7 +79,7 @@ async def handle_jd_leech(client, message):
 
     if not jdownloader.is_connected:
         await sendMessage(
-            "JDownloader is not connected. Please check JD_EMAIL and JD_PASSWORD configuration.",
+            tr('commands.mirror.jd_disconnected'),
             message
         )
         return
@@ -232,7 +233,7 @@ async def mirror_leech(
         try:
             msg, tg_client = await get_tg_link_message(link)
         except TgLinkException as e:
-            await sendMessage(str(e), message)
+            await sendMessage(tr('commands.telegram.error', detail=str(e)), message)
             return
         tg_file = (
             msg.document
@@ -246,7 +247,7 @@ async def mirror_leech(
             or None
         )
         if tg_file is None:
-            await sendMessage("❌ <b>No file found in the Telegram link!</b>", message)
+            await sendMessage(tr('commands.mirror.no_file'), message)
             return
         file = tg_file
         download_client = tg_client
@@ -279,15 +280,14 @@ async def mirror_leech(
                 link = await run_sync_to_async(direct_link_generator, link)
             except DirectDownloadLinkException as e:
                 if str(e).startswith("ERROR:"):
-                    await sendMessage(str(e), message)
+                    await sendMessage(tr('commands.link.error', detail=error_detail(e)), message)
                     return
 
     # Check queue limits for downloads
     is_queued, event = await check_running_tasks(listener, state="dl")
     if is_queued:
         await sendMessage(
-            f"⏳ <b>Your task has been added to the download queue</b>\n"
-            f"Position: <code>{len(event) if hasattr(event, '__len__') else 'Unknown'}</code>",
+            tr('commands.mirror.queued', position=len(event) if hasattr(event, '__len__') else tr('commands.mirror.unknown')),
             message
         )
         if event:
@@ -296,16 +296,16 @@ async def mirror_leech(
     if file is not None:
         if reply_message and not multi:
             buttons = ButtonMaker()
-            file_name = file.file_name if hasattr(file, "file_name") else "None"
+            file_name = file.file_name if hasattr(file, "file_name") else tr("common.none")
             if name_sub and not tg_link_resolved:
                 file_name = apply_name_substitute(file_name, name_sub)
-            msg = "📝 <b>Which name do you want to use?</b>\n\n"
-            msg += f"<b>Name</b>: <code>{file_name}</code>\n\n"
-            msg += f"<b>Size</b>: <code>{get_readable_size(file.file_size)}</code>"
-            buttons.cb_buildbutton("📄 By default", "mirrormenu^default")
-            buttons.cb_buildbutton("✏️ Rename", "mirrormenu^rename")
-            buttons.cb_buildbutton("ℹ️ Mirror Commands", "mirrormenu^commands")
-            buttons.cb_buildbutton("✘ Close Menu", "mirrormenu^close", "footer")
+            msg = tr('commands.mirror.rename_title')
+            msg += tr('commands.mirror.name', file_name=file_name)
+            msg += tr('commands.mirror.size', size=get_readable_size(file.file_size))
+            buttons.cb_buildbutton(tr('commands.mirror.default_name', _html=False), "mirrormenu^default")
+            buttons.cb_buildbutton(tr('commands.mirror.rename', _html=False), "mirrormenu^rename")
+            buttons.cb_buildbutton(tr('commands.mirror.commands', _html=False), "mirrormenu^commands")
+            buttons.cb_buildbutton(tr('commands.button.close_menu', _html=False), "mirrormenu^close", "footer")
             listener_dict[message_id] = [listener, file, message, isLeech, user_id, "", download_client]
             await sendMarkup(msg, message, reply_markup=buttons.build_menu(2))
         else:
@@ -354,7 +354,7 @@ async def mirror_menu(client, query):
     download_client = info[6] if len(info) > 6 else client
 
     if int(info[4]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours', _html=False), show_alert=True)
         return
     elif cmd[1] == "default":
         await query_message.delete()
@@ -368,7 +368,7 @@ async def mirror_menu(client, query):
     elif cmd[1] == "rename":
         await query_message.delete()
         question = await client.send_message(
-            message.chat.id, text="Send the new name with extension, /ignore to cancel"
+            message.chat.id, text=tr('commands.mirror.new_name')
         )
         try:
             response = await client.listen.Message(
@@ -392,7 +392,7 @@ async def mirror_menu(client, query):
                         )
                         await conditional_queue_add(message, tgdown.download)
         except TimeoutError:
-            await sendMessage("⏰ Too late 60s gone, try again!", message)
+            await sendMessage(tr('commands.batch.timeout'), message)
         finally:
             await question.delete()
     elif cmd[1] == "commands":
@@ -418,7 +418,7 @@ async def mirror_select(client, callback_query):
     download_client = info[6] if len(info) > 6 else client
 
     if int(info[4]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr('commands.menu.not_yours', _html=False), show_alert=True)
         return
     elif cmd[1] == "remote":
         await query.answer()

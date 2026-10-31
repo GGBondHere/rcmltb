@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 """JDownloader download helper."""
 
 from base64 import b64encode
@@ -23,7 +24,7 @@ async def add_jd_download(link, name, path, listener):
     """
     device = jdownloader.get_device()
     if not jdownloader.is_connected or not device:
-        await sendMessage("JDownloader not connected. Please check configuration.", listener.message)
+        await sendMessage(tr('helpers.text.jdownloader_not_connected_please_check_configuration', _html=False), listener.message)
         return
 
     try:
@@ -37,7 +38,7 @@ async def add_jd_download(link, name, path, listener):
                     "DLC", f"data:;base64,{dlc_content}"
                 )
             else:
-                await sendMessage("DLC file not found.", listener.message)
+                await sendMessage(tr('helpers.text.dlc_file_not_found', _html=False), listener.message)
                 return
         else:
             # Add direct link
@@ -57,7 +58,7 @@ async def add_jd_download(link, name, path, listener):
         # Query packages to get the new package ID
         packages = await device.linkgrabber.query_packages()
         if not packages:
-            await sendMessage("Failed to add link to JDownloader.", listener.message)
+            await sendMessage(tr('helpers.text.failed_to_add_link_to_jdownloader', _html=False), listener.message)
             return
 
         # Get the most recent package
@@ -76,7 +77,7 @@ async def add_jd_download(link, name, path, listener):
         
     except Exception as e:
         LOGGER.error(f"Error adding JDownloader download: {e}")
-        await sendMessage(f"Error: {str(e)}", listener.message)
+        await sendMessage(tr('helpers.text.error', value1=str(e)), listener.message)
 
 
 async def handle_dlc_file(file_path, listener, path):
@@ -89,7 +90,7 @@ async def handle_dlc_file(file_path, listener, path):
     """
     device = jdownloader.get_device()
     if not jdownloader.is_connected or not device:
-        await sendMessage("JDownloader not connected.", listener.message)
+        await sendMessage(tr('helpers.text.jdownloader_not_connected', _html=False), listener.message)
         return
 
     try:
@@ -106,7 +107,7 @@ async def handle_dlc_file(file_path, listener, path):
 
         packages = await device.linkgrabber.query_packages()
         if not packages:
-            await sendMessage("Failed to add DLC file.", listener.message)
+            await sendMessage(tr('helpers.text.failed_to_add_dlc_file', _html=False), listener.message)
             return
 
         package = packages[-1]
@@ -122,4 +123,4 @@ async def handle_dlc_file(file_path, listener, path):
 
     except Exception as e:
         LOGGER.error(f"Error handling DLC file: {e}")
-        await sendMessage(f"Error: {str(e)}", listener.message)
+        await sendMessage(tr('helpers.text.error', value1=str(e)), listener.message)

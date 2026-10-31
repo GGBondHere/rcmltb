@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from re import (
     ASCII,
     IGNORECASE,
@@ -159,8 +160,7 @@ async def get_tg_link_message(link):
     target = parse_tg_message_link(link)
     if target is None:
         raise TgLinkException(
-            "Invalid or unsupported Telegram message link. "
-            "Send a direct link to a message without comment parameters."
+            tr('helpers.text.invalid_or_unsupported_telegram_message_link_send_a_direct_link_to_a', _html=False)
         )
     chat_id, msg_id, user_only = target
 
@@ -175,16 +175,15 @@ async def get_tg_link_message(link):
             pass
         if not app:
             raise TgLinkException(
-                "Bot can't access this message, or it has been deleted. "
-                "Make sure the bot is a chat member or set USER_SESSION_STRING."
+                tr('helpers.text.bot_can_t_access_this_message_or_it_has_been_deleted_make', _html=False)
             )
     elif not app:
-        raise TgLinkException("This private message link requires USER_SESSION_STRING!")
+        raise TgLinkException(tr('helpers.text.this_private_message_link_requires_user_session_string', _html=False))
 
     try:
         msg = await app.get_messages(chat_id, msg_id)
     except Exception as e:
-        raise TgLinkException(f"Can't access this chat with the user session: {e}") from e
+        raise TgLinkException(tr('helpers.text.can_t_access_this_chat_with_the_user_session', value1=e, _html=False)) from e
     if msg and not msg.empty:
         return msg, app
-    raise TgLinkException("Message not found, deleted, or inaccessible to the user session.")
+    raise TgLinkException(tr('helpers.text.message_not_found_deleted_or_inaccessible_to_the_user_session', _html=False))

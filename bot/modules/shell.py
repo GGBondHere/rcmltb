@@ -1,3 +1,4 @@
+from bot.i18n import tr
 from asyncio import create_subprocess_shell
 from asyncio.subprocess import PIPE
 from bot import LOGGER, bot
@@ -11,7 +12,7 @@ from pyrogram.types import ReplyParameters
 async def shell(client, message):
     cmd = message.text.split(maxsplit=1)
     if len(cmd) == 1:
-        await message.reply_text("No command to execute was given.")
+        await message.reply_text(tr('commands.exec.no_command', _html=False))
         return
     cmd = cmd[1]
     process = await create_subprocess_shell(cmd, stdout=PIPE, stderr=PIPE)
@@ -20,10 +21,10 @@ async def shell(client, message):
     stderr = stderr.decode()
     stdout = stdout.decode()
     if len(stdout) != 0:
-        reply += f"*Stdout*\n`{stdout}`\n"
+        reply += tr('commands.shell.stdout', stdout=stdout, _html=False)
         LOGGER.info(f"Shell - {cmd} - {stdout}")
     if len(stderr) != 0:
-        reply += f"*Stderr*\n`{stderr}`\n"
+        reply += tr('commands.shell.stderr', stderr=stderr, _html=False)
         LOGGER.error(f"Shell - {cmd} - {stderr}")
     if len(reply) > 3000:
         with open("shell_output.txt", "w") as file:
@@ -38,7 +39,7 @@ async def shell(client, message):
     elif len(reply) != 0:
         await message.reply_text(reply)
     else:
-        await message.reply_text("No Reply")
+        await message.reply_text(tr('commands.exec.no_reply', _html=False))
 
 
 bot.add_handler(MessageHandler(

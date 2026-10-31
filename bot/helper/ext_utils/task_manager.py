@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import Event
 
 from bot import (
@@ -65,7 +66,7 @@ async def stop_duplicate_check(listener):
                 .execute()
             )
             if response.get("files"):
-                msg = f"File/Folder already exists in Drive:\n<code>{name}</code>"
+                msg = tr('helpers.text.file_folder_already_exists_in_drive', value1=name)
                 return msg, None
         except Exception as e:
             LOGGER.error(f"stop_duplicate_check error: {e}")

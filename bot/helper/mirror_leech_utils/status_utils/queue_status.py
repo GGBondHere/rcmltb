@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from bot.helper.ext_utils.bot_utils import MirrorStatus
 
 
@@ -13,8 +14,8 @@ class QueueStatus:
 
     def name(self):
         if self.__status == "dl":
-            return f"Waiting for download: {self.__listener.name}"
-        return f"Waiting for upload: {self.__listener.name}"
+            return tr('helpers.text.waiting_for_download', value1=self.__listener.name, _html=False)
+        return tr('helpers.text.waiting_for_upload', value1=self.__listener.name, _html=False)
 
     def size(self):
         return ""
@@ -43,4 +44,4 @@ class QueueStatus:
         return self
 
     async def cancel_task(self):
-        await self.__listener.onDownloadError("Task cancelled from queue!")
+        await self.__listener.onDownloadError(tr('helpers.text.task_cancelled_from_queue', _html=False, _user_id=self.__listener.user_id))

@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw, ui_error
 from random import SystemRandom
 from string import ascii_letters, digits
 from os import makedirs
@@ -68,7 +69,7 @@ class MegaAppListener(MegaListener):
         if not self.is_cancelled:
             self.is_cancelled = True
             run_async_to_sync(
-                self.listener.onDownloadError, f"RequestTempError: {error.toString()}"
+                self.listener.onDownloadError, tr('helpers.text.requesttemperror', value1=error.toString(), _user_id=self.listener.user_id, _html=False)
             )
         self.error = error.toString()
         self.continue_event.set()
@@ -105,13 +106,13 @@ class MegaAppListener(MegaListener):
         if not self.is_cancelled:
             self.is_cancelled = True
             run_async_to_sync(
-                self.listener.onDownloadError, f"TransferTempError: {errStr} ({filen})"
+                self.listener.onDownloadError, tr('helpers.text.transfertemperror', value1=errStr, value2=filen, _user_id=self.listener.user_id, _html=False)
             )
             self.continue_event.set()
 
     async def cancel_task(self):
         self.is_cancelled = True
-        await self.listener.onDownloadError("Download Canceled by user")
+        await self.listener.onDownloadError(tr('helpers.text.download_canceled_by_user', _html=False, _user_id=self.listener.user_id))
 
 
 class AsyncExecutor:
@@ -148,7 +149,7 @@ async def add_mega_download(mega_link, path: str, listener, name: str):
         await run_sync_to_async(executor.do, folder_api.loginToFolder, (mega_link,))
         node = await run_sync_to_async(folder_api.authorizeNode, mega_listener.node)
     if mega_listener.error is not None:
-        await sendMessage(str(mega_listener.error), listener.message)
+        await sendMessage(ui_error(mega_listener.error), listener.message)
         await run_sync_to_async(executor.do, api.logout, ())
         if folder_api is not None:
             await run_sync_to_async(executor.do, folder_api.logout, ())

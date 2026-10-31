@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 """JDownloader status utility."""
 
 from bot import LOGGER
@@ -89,4 +90,4 @@ class JDownloaderStatus:
                 )
             except Exception as e:
                 LOGGER.error(f"Error canceling JDownloader task: {e}")
-        await self._listener.onDownloadError("Download cancelled by user")
+        await self._listener.onDownloadError(tr('helpers.task.jd_download_cancelled', _html=False, _user_id=self._listener.user_id))

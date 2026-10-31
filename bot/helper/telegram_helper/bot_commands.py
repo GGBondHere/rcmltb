@@ -28,6 +28,7 @@ class _BotCommands:
         self.CleanupCommand = f"cleanup{CMD_INDEX}"
         self.BiSyncCommand = f"bisync{CMD_INDEX}"
         self.UserSetCommand = f"usetting{CMD_INDEX}"
+        self.LanguageCommand = [f"lang{CMD_INDEX}", f"language{CMD_INDEX}"]
         self.OwnerSetCommand = f"bsetting{CMD_INDEX}"
         self.CancelAllCommand = f"cancel_all{CMD_INDEX}"
         self.CancelCommand = f"cancel{CMD_INDEX}"

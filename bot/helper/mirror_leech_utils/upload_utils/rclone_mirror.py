@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import create_subprocess_exec
 from asyncio.subprocess import PIPE
 from random import SystemRandom
@@ -131,7 +132,7 @@ class RcloneMirror:
         else:
             if path.lower().endswith(tuple(GLOBAL_EXTENSION_FILTER)):
                 await self.__listener.onUploadError(
-                    "This file extension is excluded by extension filter!"
+                    tr('helpers.text.this_file_extension_is_excluded_by_extension_filter', _html=False)
                 )
                 return
             folders = 0
@@ -165,7 +166,7 @@ class RcloneMirror:
             return not self.__is_cancelled
         else:
             error = (await self.process.stderr.read()).decode().strip()
-            await self.__listener.onUploadError(f"Error: {error}!")
+            await self.__listener.onUploadError(tr('helpers.task.backend_error', value1=error, _html=False))
 
     async def delete_files_with_extensions(self):
         for dirpath, _, files in walk(self.__path):
@@ -184,4 +185,4 @@ class RcloneMirror:
                 self.process.kill()
             except Exception:
                 pass
-        await self.__listener.onUploadError("Upload cancelled!")
+        await self.__listener.onUploadError(tr('helpers.text.upload_cancelled', _html=False, _user_id=self.__listener.user_id))

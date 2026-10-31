@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from time import time
 from bot import LOGGER
 from bot.core.torrent_manager import TorrentManager, aria2_name
@@ -174,12 +175,12 @@ class AriaStatus:
         if self.__download.get("seeder", False) and self.seeding:
             LOGGER.info(f"Cancelling Seed: {self.name()}")
             await self.__listener.onUploadError(
-                f"Seeding stopped with Ratio: {self.ratio()} and Time: {self.seeding_time()}"
+                tr('helpers.text.seeding_stopped_with_ratio_and_time', value1=self.ratio(), value2=self.seeding_time(), _html=False, _user_id=self.__listener.user_id)
             )
             await TorrentManager.aria2_remove(self.__download)
         elif self.__download.get("followedBy", []):
             LOGGER.info(f"Cancelling Download: {self.name()}")
-            await self.__listener.onDownloadError("Download cancelled by user!")
+            await self.__listener.onDownloadError(tr('helpers.task.aria_download_cancelled', _html=False, _user_id=self.__listener.user_id))
             for gid in self.__download.get("followedBy", []):
                 try:
                     dl = await TorrentManager.aria2.tellStatus(gid)
@@ -189,5 +190,5 @@ class AriaStatus:
             await TorrentManager.aria2_remove(self.__download)
         else:
             LOGGER.info(f"Cancelling Download: {self.name()}")
-            await self.__listener.onDownloadError("Download stopped by user!")
+            await self.__listener.onDownloadError(tr('helpers.text.download_stopped_by_user', _html=False, _user_id=self.__listener.user_id))
             await TorrentManager.aria2_remove(self.__download)

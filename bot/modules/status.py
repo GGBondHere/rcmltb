@@ -1,3 +1,4 @@
+from bot.i18n import tr, locale_context
 from time import time
 from psutil import cpu_percent, virtual_memory, disk_usage
 from bot import (
@@ -30,11 +31,12 @@ async def status_handler(client, message):
     if count == 0:
         currentTime = get_readable_time(time() - botUptime)
         free = get_readable_file_size(disk_usage(DOWNLOAD_DIR).free)
-        msg = "📭 <b>No Active Tasks</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━"
-        msg += (
-            f"\n🖥 <b>CPU:</b> {cpu_percent()}% | <b>Free Disk:</b> {free}"
-            f"\n💾 <b>RAM:</b> {virtual_memory().percent}% | <b>Uptime:</b> {currentTime}"
-        )
+        with locale_context(message.chat.id, global_default=message.chat.id < 0):
+            msg = tr('commands.status.empty')
+            msg += tr(
+                'commands.status.resources', cpu=cpu_percent(), free=free,
+                memory=virtual_memory().percent, uptime=currentTime,
+            )
         reply_message = await sendMessage(msg, message)
         await auto_delete_message(message, reply_message)
     else:

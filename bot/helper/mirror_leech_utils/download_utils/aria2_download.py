@@ -1,4 +1,5 @@
 from os import path as ospath, remove as osremove
+from bot.i18n import ui_error
 
 from bot import LOGGER, config_dict, status_dict_lock, status_dict, aria2_options
 from bot.core.torrent_manager import TorrentManager, aria2_name
@@ -22,7 +23,7 @@ async def add_aria2c_download(link, path, listener, filename, auth):
             gid = await TorrentManager.aria2.addUri(uris=[link], options=a2c_opt)
     except Exception as e:
         LOGGER.info(f"Aria2c Download Error: {e}")
-        await sendMessage(f"{e}", listener.message)
+        await sendMessage(ui_error(e), listener.message)
         return
 
     if ospath.exists(link):
@@ -32,7 +33,7 @@ async def add_aria2c_download(link, path, listener, filename, auth):
     if download.get("errorMessage"):
         error = str(download["errorMessage"]).replace("<", " ").replace(">", " ")
         LOGGER.info(f"Aria2c Download Error: {error}")
-        await sendMessage(error, listener.message)
+        await sendMessage(ui_error(error), listener.message)
         return
 
     name = aria2_name(download)

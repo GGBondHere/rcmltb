@@ -29,7 +29,8 @@ from bot.helper.ext_utils.help_messages import (
 from bot.helper.ext_utils.db_handler import database
 from bot.helper.ext_utils.misc_utils import clean_all, exit_clean_up, start_cleanup
 from bot.helper.telegram_helper.message_utils import sendMessage
-from pyrogram.types import BotCommand
+from bot.i18n import tr
+from bot.i18n.commands import publish_commands
 from bot.helper.telegram_helper.bot_commands import BotCommands
 
 
@@ -101,35 +102,13 @@ async def main():
         with open(".restartmsg") as f:
             chat_id, msg_id = map(int, f)
         try:
-            await TgClient.bot.edit_message_text(chat_id, msg_id, "Restarted successfully!")
+            await TgClient.bot.edit_message_text(chat_id, msg_id, tr("core.restart.complete", _user_id=chat_id if chat_id > 0 else None))
         except Exception:
             pass
         osremove(".restartmsg")
 
     # 14. Set bot commands
-    await TgClient.bot.set_bot_commands(
-        [
-            BotCommand(BotCommands.StartCommand, "Start the bot"),
-            BotCommand(BotCommands.MirrorCommand[0], "Mirror to cloud"),
-            BotCommand(BotCommands.YtdlMirrorCommand[0], "Download with yt-dlp to cloud"),
-            BotCommand(BotCommands.LeechCommand[0], "Leech to Telegram"),
-            BotCommand(BotCommands.YtdlLeechCommand[0], "Download with yt-dlp to Telegram"),
-            BotCommand(BotCommands.CloneCommand, "Clone Google Drive files"),
-            BotCommand(BotCommands.CopyCommand, "Copy files between remotes"),
-            BotCommand(BotCommands.StatusCommand, "Show download status"),
-            BotCommand(BotCommands.StatsCommand, "Show bot stats"),
-            BotCommand(BotCommands.CancelCommand, "Cancel a task"),
-            BotCommand(BotCommands.CancelAllCommand, "Cancel all tasks"),
-            BotCommand(BotCommands.TorrentSearchCommand, "Search torrents"),
-            BotCommand(BotCommands.ServeCommand, "Serve files via web"),
-            BotCommand(BotCommands.UserSetCommand, "User settings"),
-            BotCommand(BotCommands.OwnerSetCommand, "Owner settings"),
-            BotCommand(BotCommands.PingCommand, "Ping the bot"),
-            BotCommand(BotCommands.LogsCommand, "Get bot logs"),
-            BotCommand(BotCommands.RestartCommand, "Restart the bot"),
-            BotCommand(BotCommands.HelpCommand, "Show help and usage"),
-        ]
-    )
+    await publish_commands(TgClient.bot)
 
     # 15. Save settings to DB
     await save_settings()

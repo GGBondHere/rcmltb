@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from time import time
 from bot import (
     IS_PREMIUM_USER,
@@ -58,7 +59,7 @@ class TelegramDownloader:
         if IS_PREMIUM_USER and not self.__listener.isSuperGroup:
             if self.__client != app:
                 await sendMessage(
-                    "Use SuperGroup to download with User!", self.__listener.message
+                    tr('helpers.text.use_supergroup_to_download_with_user', _html=False), self.__listener.message
                 )
                 return
         if self.__file is None:
@@ -80,7 +81,7 @@ class TelegramDownloader:
                 progress=self.onDownloadProgress,
             )
             if self.__is_cancelled:
-                await self.__onDownloadError("Cancelled by user!")
+                await self.__onDownloadError(tr('helpers.text.cancelled_by_user', _html=False))
                 return
         except Exception as e:
             LOGGER.error(str(e))
@@ -89,7 +90,7 @@ class TelegramDownloader:
         if download is not None:
             await self.__listener.onDownloadComplete()
         elif not self.__is_cancelled:
-            await self.__onDownloadError("Internal error occurred")
+            await self.__onDownloadError(tr('helpers.text.internal_error_occurred', _html=False))
 
     async def __onDownloadError(self, error):
         await self.__listener.onDownloadError(error)

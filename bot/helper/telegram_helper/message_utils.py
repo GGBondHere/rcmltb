@@ -20,7 +20,7 @@ async def sendMessage(text: str, message, reply_markup=None):
         return await bot.send_message(
             message.chat.id,
             reply_parameters=ReplyParameters(message_id=message.id),
-            text=text,
+            text=str(text),
             reply_markup=reply_markup,
             link_preview_options=LinkPreviewOptions(is_disabled=True),
         )
@@ -37,7 +37,7 @@ async def sendPhoto(text, message, path, reply_markup):
             chat_id=message.chat.id,
             reply_parameters=ReplyParameters(message_id=message.id),
             photo=path,
-            caption=text,
+            caption=str(text),
             reply_markup=reply_markup,
         )
     except (FloodWait, FloodPremiumWait) as fw:
@@ -52,7 +52,7 @@ async def sendMarkup(text: str, message, reply_markup):
         return await bot.send_message(
             message.chat.id,
             reply_parameters=ReplyParameters(message_id=message.id),
-            text=text,
+            text=str(text),
             reply_markup=reply_markup,
         )
     except (FloodWait, FloodPremiumWait) as fw:
@@ -65,7 +65,7 @@ async def sendMarkup(text: str, message, reply_markup):
 async def editMarkup(text: str, message, reply_markup):
     try:
         return await bot.edit_message_text(
-            message.chat.id, message.id, text=text, reply_markup=reply_markup
+            message.chat.id, message.id, text=str(text), reply_markup=reply_markup
         )
     except (FloodWait, FloodPremiumWait) as fw:
         await sleep(fw.value * 1.2)
@@ -79,7 +79,7 @@ async def editMarkup(text: str, message, reply_markup):
 async def editMessage(text: str, message, reply_markup=None):
     try:
         return await bot.edit_message_text(
-            text=text,
+            text=str(text),
             message_id=message.id,
             link_preview_options=LinkPreviewOptions(is_disabled=True),
             chat_id=message.chat.id,
@@ -107,7 +107,7 @@ async def sendFile(message, file, caption=""):
         return await bot.send_document(
             document=file,
             reply_parameters=ReplyParameters(message_id=message.id),
-            caption=caption,
+            caption=str(caption),
             parse_mode=ParseMode.HTML,
             chat_id=message.chat.id,
         )

@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import create_subprocess_exec
 import inspect
 from aiohttp import ClientSession
@@ -165,7 +166,7 @@ def get_base_name(orig_path: str):
     if extension != "":
         return re_split(f"{extension}$", orig_path, maxsplit=1, flags=I)[0]
     else:
-        raise NotSupportedExtractionArchive("File format not supported for extraction")
+        raise NotSupportedExtractionArchive(tr('helpers.text.file_format_not_supported_for_extraction', _html=False))
 
 
 async def get_path_size(path: str):
@@ -433,14 +434,14 @@ def bt_selection_buttons(id_):
     QB_BASE_URL = config_dict["QB_BASE_URL"]
     QB_SERVER_PORT = config_dict["QB_SERVER_PORT"]
     if config_dict["WEB_PINCODE"]:
-        buttons.url_buildbutton("Select Files", f"{QB_BASE_URL}:{QB_SERVER_PORT}/app/files/{id_}?token={token}")
-        buttons.cb_buildbutton("Pincode", f"btsel pin {gid} {pincode}")
+        buttons.url_buildbutton(tr('helpers.text.select_files', _html=False), f"{QB_BASE_URL}:{QB_SERVER_PORT}/app/files/{id_}?token={token}")
+        buttons.cb_buildbutton(tr('helpers.text.pincode', _html=False), f"btsel pin {gid} {pincode}")
     else:
         buttons.url_buildbutton(
-            "Select Files", f"{QB_BASE_URL}:{QB_SERVER_PORT}/app/files/{id_}?token={token}&pin_code={pincode}"
+            tr('helpers.text.select_files', _html=False), f"{QB_BASE_URL}:{QB_SERVER_PORT}/app/files/{id_}?token={token}&pin_code={pincode}"
         )
-    buttons.cb_buildbutton("Cancel", f"btsel rm {gid} {id_}")
-    buttons.cb_buildbutton("Done Selecting", f"btsel done {gid} {id_}")
+    buttons.cb_buildbutton(tr('helpers.text.cancel', _html=False), f"btsel rm {gid} {id_}")
+    buttons.cb_buildbutton(tr('helpers.text.done_selecting', _html=False), f"btsel done {gid} {id_}")
     return buttons.build_menu(2)
 
 

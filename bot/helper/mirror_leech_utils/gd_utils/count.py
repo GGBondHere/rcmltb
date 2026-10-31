@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from logging import getLogger
 from bot.helper.mirror_leech_utils.gd_utils.helper import GoogleDriveHelper
 from tenacity import RetryError
@@ -14,7 +15,7 @@ class gdCount(GoogleDriveHelper):
             file_id = self.getIdFromUrl(link, user_id)
         except (KeyError, IndexError):
             return (
-                "Google Drive ID could not be found in the provided link",
+                tr('helpers.text.google_drive_id_could_not_be_found_in_the_provided_link', _html=False),
                 None,
                 None,
                 None,
@@ -35,9 +36,9 @@ class gdCount(GoogleDriveHelper):
                     self.use_sa = False
                     LOGGER.error("File not found. Trying with token.pickle...")
                     return self.count(link, user_id)
-                msg = "File not found."
+                msg = tr('helpers.text.file_not_found', _html=False)
             else:
-                msg = f"Error.\n{err}"
+                msg = tr('helpers.task.drive_error', value1=err, _html=False)
         return msg, None, None, None, None
 
     def _proceed_count(self, file_id):

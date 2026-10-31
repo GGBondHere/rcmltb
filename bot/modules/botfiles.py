@@ -1,3 +1,4 @@
+from bot.i18n import tr, raw
 from asyncio import TimeoutError, create_subprocess_exec, create_subprocess_shell
 from asyncio.subprocess import PIPE, create_subprocess_exec as exec
 from pyrogram.filters import regex, command
@@ -36,9 +37,12 @@ from bot.helper.telegram_helper.message_utils import (
 )
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.modules.torr_search import initiate_search_tools
+from bot.core.config_manager import Config
 
 
 async def load_config():
+    ui_language = environ.get("BOT_UI_LANGUAGE", config_dict.get("BOT_UI_LANGUAGE", "zh-CN"))
+    Config.set("BOT_UI_LANGUAGE", ui_language)
     BOT_TOKEN = environ.get("BOT_TOKEN", "")
     if len(BOT_TOKEN) == 0:
         BOT_TOKEN = config_dict["BOT_TOKEN"]
@@ -281,6 +285,7 @@ async def load_config():
 
     config_dict.update(
         {
+            "BOT_UI_LANGUAGE": ui_language,
             "AS_DOCUMENT": AS_DOCUMENT,
             "ALLOWED_CHATS": ALLOWED_CHATS,
             "AUTO_DELETE_MESSAGE_DURATION": AUTO_DELETE_MESSAGE_DURATION,
@@ -342,6 +347,8 @@ async def load_config():
     if database.enabled:
         await database.update_config(config_dict)
     await initiate_search_tools()
+    from bot.i18n.commands import publish_commands
+    await publish_commands(bot)
 
 
 def _can_manage_global(user_id):
@@ -350,11 +357,11 @@ def _can_manage_global(user_id):
 
 def _section_title(section):
     return {
-        "rclone": "👤 My rclone config",
-        "token": "🔑 Google Drive token",
-        "rclone_global": "🌐 Global rclone config",
-        "config": "🛠 Bot config",
-        "accounts": "📦 Service accounts",
+        "rclone": tr("settings.my_rclone", _html=False),
+        "token": tr("settings.drive_token", _html=False),
+        "rclone_global": tr("settings.global_rclone", _html=False),
+        "config": tr("settings.bot_config", _html=False),
+        "accounts": tr("settings.accounts", _html=False),
     }[section]
 
 
@@ -380,21 +387,20 @@ async def _rclone_remotes(path, message):
     process = await exec(*cmd, stdout=PIPE, stderr=PIPE)
     stdout, stderr = await process.communicate()
     if await process.wait() != 0:
-        err = stderr.decode().strip() or "Unknown rclone error"
-        await sendMessage(f"Error: {err}", message)
+        err = stderr.decode().strip() or tr("settings.rclone_unknown", _html=False)
+        await sendMessage(tr("settings.technical_error", err=err), message)
         return None
     remotes = [remote.replace(":", "").strip() for remote in stdout.decode().splitlines()]
     remotes = [remote for remote in remotes if remote]
     if not remotes:
-        return "- No remotes found"
+        return tr("settings.no_remotes", _html=False)
     return "\n".join(f"- {remote}" for remote in remotes)
 
 
 async def files_menu(user_id, message, edit=False):
     buttons = ButtonMaker()
     msg = (
-        "⚙️ <b>Files manager</b>\n\n"
-        "Manage the files used by the bot. Tap a card to open its submenu."
+        tr("settings.files_title", _html=False)
     )
 
     for section in _overview_sections(user_id):
@@ -405,7 +411,7 @@ async def files_menu(user_id, message, edit=False):
             f"configmenu^section^{section}^{user_id}",
         )
 
-    buttons.cb_buildbutton("✘ Close Menu", f"configmenu^close^{user_id}", "footer")
+    buttons.cb_buildbutton(tr("settings.close_menu", _html=False), f"configmenu^close^{user_id}", "footer")
     markup = buttons.build_menu(2)
     if edit:
         await editMarkup(msg, message, reply_markup=markup)
@@ -417,54 +423,52 @@ async def files_section_menu(user_id, message, section, edit=False):
     if section in {"rclone_global", "config", "accounts"} and not _can_manage_global(
         user_id
     ):
-        await sendMessage("🚫 <b>Not allowed to use</b>", message)
+        await sendMessage(tr("settings.access_denied", _html=False), message)
         return
 
     path = _section_path(section, user_id)
     exists = ospath.exists(path)
     buttons = ButtonMaker()
     msg = (
-        f"{_section_title(section)}\n\n"
-        f"<b>Status:</b> {'✅ Present' if exists else '➕ Missing'}\n"
-        f"<b>Path:</b> <code>{path}</code>"
+        tr("settings.file_status", title=raw(_section_title(section)), status=tr("settings.present" if exists else "settings.missing", _html=False), path=path)
     )
 
     if section in {"rclone", "rclone_global"} and exists:
         remotes = await _rclone_remotes(path, message)
         if remotes:
-            msg += f"\n\n<b>Remotes:</b>\n{remotes}"
+            msg += tr("settings.remotes", remotes=remotes)
 
     if section == "accounts":
         if exists:
             buttons.cb_buildbutton(
-                "📤 Replace accounts.zip", f"configmenu^upload^{section}^{user_id}"
+                tr("settings.replace_accounts", _html=False), f"configmenu^upload^{section}^{user_id}"
             )
             buttons.cb_buildbutton(
-                "🗑 Delete accounts", f"configmenu^delete^{section}^{user_id}"
+                tr("settings.delete_accounts", _html=False), f"configmenu^delete^{section}^{user_id}"
             )
         else:
             buttons.cb_buildbutton(
-                "📤 Upload accounts.zip", f"configmenu^upload^{section}^{user_id}"
+                tr("settings.upload_accounts", _html=False), f"configmenu^upload^{section}^{user_id}"
             )
     else:
         file_name = path.rsplit("/", 1)[-1]
         if exists:
             buttons.cb_buildbutton(
-                f"📥 View {file_name}", f"configmenu^view^{section}^{user_id}"
+                tr("settings.view_file", file_name=file_name, _html=False), f"configmenu^view^{section}^{user_id}"
             )
             buttons.cb_buildbutton(
-                f"📤 Replace {file_name}", f"configmenu^upload^{section}^{user_id}"
+                tr("settings.replace_file", file_name=file_name, _html=False), f"configmenu^upload^{section}^{user_id}"
             )
             buttons.cb_buildbutton(
-                f"🗑 Delete {file_name}", f"configmenu^delete^{section}^{user_id}"
+                tr("settings.delete_file", file_name=file_name, _html=False), f"configmenu^delete^{section}^{user_id}"
             )
         else:
             buttons.cb_buildbutton(
-                f"📤 Upload {file_name}", f"configmenu^upload^{section}^{user_id}"
+                tr("settings.upload_file", file_name=file_name, _html=False), f"configmenu^upload^{section}^{user_id}"
             )
 
-    buttons.cb_buildbutton("⬅️ Back", f"configmenu^back^{user_id}", "footer")
-    buttons.cb_buildbutton("✘ Close Menu", f"configmenu^close^{user_id}", "footer_second")
+    buttons.cb_buildbutton(tr("settings.back_arrow", _html=False), f"configmenu^back^{user_id}", "footer")
+    buttons.cb_buildbutton(tr("settings.close_menu", _html=False), f"configmenu^close^{user_id}", "footer_second")
     markup = buttons.build_menu(2)
     if edit:
         await editMarkup(msg, message, reply_markup=markup)
@@ -474,17 +478,17 @@ async def files_section_menu(user_id, message, section, edit=False):
 
 async def _view_section_file(client, message, user_id, section):
     if section == "accounts":
-        await sendMessage("📦 <b>Service accounts are stored as a folder.</b>", message)
+        await sendMessage(tr("settings.accounts_folder", _html=False), message)
         return
 
     path = _section_path(section, user_id)
     if not ospath.exists(path):
-        await sendMessage("File not found.", message)
+        await sendMessage(tr("settings.file_missing", _html=False), message)
         return
     try:
         await client.send_document(document=path, chat_id=user_id)
     except Exception:
-        await sendMessage("Open a private chat with the bot and use /files to view configuration files.", message)
+        await sendMessage(tr("settings.private_files", _html=False), message)
 
 
 async def _delete_section_file(user_id, section):
@@ -507,7 +511,7 @@ async def _delete_section_file(user_id, section):
 
 
 async def _start_upload_listener(client, query, message, user_id, section):
-    await query.answer("📁 Send the file", show_alert=False)
+    await query.answer(tr("settings.send_file", _html=False), show_alert=False)
     await set_config_listener(
         client,
         query,
@@ -543,7 +547,7 @@ async def handle_botfiles(client, message):
     if config_dict["MULTI_RCLONE_CONFIG"] or await CustomFilters.sudo_filter("", message):
         await files_menu(user_id, message)
     else:
-        await sendMessage("🚫 <b>Not allowed to use</b>", message)
+        await sendMessage(tr("settings.access_denied", _html=False), message)
 
 
 async def botfiles_callback(client, callback_query):
@@ -553,7 +557,7 @@ async def botfiles_callback(client, callback_query):
     user_id = query.from_user.id
 
     if int(cmd[-1]) != user_id:
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr("settings.menu_not_yours", _html=False), show_alert=True)
         return
 
     action, section = _resolve_action(cmd[1])
@@ -563,7 +567,7 @@ async def botfiles_callback(client, callback_query):
     if section in {"rclone_global", "config", "accounts"} and not _can_manage_global(
         user_id
     ):
-        await query.answer("⛔ This menu is not for you!", show_alert=True)
+        await query.answer(tr("settings.menu_not_yours", _html=False), show_alert=True)
         return
 
     try:
@@ -585,15 +589,15 @@ async def botfiles_callback(client, callback_query):
             await files_menu(user_id, message, True)
         elif action == "delete":
             await _delete_section_file(user_id, section)
-            await query.answer("🗑 Deleted", show_alert=False)
+            await query.answer(tr("settings.deleted", _html=False), show_alert=False)
             await files_menu(user_id, message, True)
         else:
             await query.answer()
             await message.delete()
     except ValueError as err:
-        await sendMessage(str(err), message)
+        await sendMessage(tr("common.technical_error", detail=str(err)), message)
     except Exception as err:
-        await sendMessage(str(err), message)
+        await sendMessage(tr("common.technical_error", detail=str(err)), message)
 
 
 async def set_config_listener(
@@ -627,7 +631,7 @@ async def set_config_listener(
 
     try:
         question = await client.send_message(
-            message.chat.id, text="📁 <b>Send file</b>, /ignore to cancel"
+            message.chat.id, text=tr("settings.send_file_prompt", _html=False)
         )
         response = await client.listen.Message(
             filters.document | filters.text, id=filters.user(user_id), timeout=60
@@ -636,11 +640,11 @@ async def set_config_listener(
             if "/ignore" in response.text:
                 await client.listen.Cancel(filters.user(user_id))
                 return
-            await sendMessage("📁 <b>Please send a supported file.</b>", message)
+            await sendMessage(tr("settings.unsupported_file", _html=False), message)
             return
 
         if not response.document:
-            await sendMessage("📁 <b>Please send a supported file.</b>", message)
+            await sendMessage(tr("settings.unsupported_file", _html=False), message)
             return
 
         file_name = response.document.file_name
@@ -667,16 +671,14 @@ async def set_config_listener(
             saved_path = await client.download_media(response, file_name=rclone_path)
             if not _ensure_target_file(saved_path, rclone_path):
                 await sendMessage(
-                    "❌ <b>Failed to save rclone.conf.</b>\n"
-                    "Check disk space and write permissions.",
+                    tr("settings.rclone_save_failed", _html=False),
                     message,
                 )
                 return
             if database.enabled:
                 await database.update_user_doc(user_id, file_type, rclone_path)
             await sendMessage(
-                f"✅ <b>rclone.conf uploaded successfully.</b>\n"
-                f"<b>Saved to:</b> <code>{rclone_path}</code>",
+                tr("settings.rclone_saved", rclone_path=rclone_path),
                 message,
             )
         elif target_section == "token":
@@ -684,25 +686,24 @@ async def set_config_listener(
             makedirs(path, exist_ok=True)
             des_dir = f"{path}{user_id}.pickle"
             if (getattr(response.document, "file_size", 0) or 0) > MAX_TOKEN_SIZE:
-                await sendMessage("❌ <b>Google Drive token is too large.</b>", message)
+                await sendMessage(tr("settings.token_large", _html=False), message)
                 return
             with TemporaryDirectory(prefix=".token-upload-", dir=path) as temporary:
                 temporary_path = f"{temporary}/token.pickle"
                 saved_path = await client.download_media(response, file_name=temporary_path)
                 if not _ensure_target_file(saved_path, temporary_path):
-                    await sendMessage("❌ <b>Failed to save token.pickle.</b>", message)
+                    await sendMessage(tr("settings.token_failed", _html=False), message)
                     return
                 credentials = read_drive_credentials(temporary_path)
                 write_drive_credentials(credentials, des_dir)
             if database.enabled:
                 await database.update_user_doc(user_id, "token_pickle", des_dir)
-            await sendMessage("✅ <b>token.pickle uploaded successfully.</b>", message)
+            await sendMessage(tr("settings.token_saved", _html=False), message)
         elif target_section == "config":
             saved_path = await client.download_media(response, file_name="config.env")
             if not _ensure_target_file(saved_path, "config.env"):
                 await sendMessage(
-                    "❌ <b>Failed to save config.env.</b>\n"
-                    "Check disk space and write permissions.",
+                    tr("settings.config_failed", _html=False),
                     message,
                 )
                 return
@@ -710,13 +711,12 @@ async def set_config_listener(
             await load_config()
             if database.enabled:
                 await database.update_private_file("config.env")
-            await sendMessage("✅ <b>config.env uploaded successfully.</b>", message)
+            await sendMessage(tr("settings.config_saved", _html=False), message)
         elif target_section == "accounts":
             saved_path = await client.download_media(response, file_name="accounts.zip")
             if not _ensure_target_file(saved_path, "accounts.zip"):
                 await sendMessage(
-                    "❌ <b>Failed to save accounts.zip.</b>\n"
-                    "Check disk space and write permissions.",
+                    tr("settings.accounts_failed", _html=False),
                     message,
                 )
                 return
@@ -735,7 +735,7 @@ async def set_config_listener(
             await (await create_subprocess_exec("chmod", "-R", "777", "accounts")).wait()
             if database.enabled:
                 await database.update_private_file("accounts.zip")
-            await sendMessage("✅ <b>accounts.zip uploaded and extracted.</b>", message)
+            await sendMessage(tr("settings.accounts_saved", _html=False), message)
         else:
             await client.download_media(response, file_name="./")
             if file_name in [".netrc", "netrc"]:
@@ -745,13 +745,13 @@ async def set_config_listener(
                 await (await create_subprocess_exec("chmod", "600", ".netrc")).wait()
             if database.enabled:
                 await database.update_private_file(file_name)
-            await sendMessage("✅ <b>File uploaded successfully.</b>", message)
+            await sendMessage(tr("settings.file_saved", _html=False), message)
         if ospath.exists("accounts.zip"):
             osremove("accounts.zip")
     except TimeoutError:
-        await client.send_message(message.chat.id, text="⏰ Too late 60s gone, try again!")
+        await client.send_message(message.chat.id, text=tr("settings.timeout_clock", _html=False))
     except Exception as ex:
-        await sendMessage(str(ex), message)
+        await sendMessage(tr("common.technical_error", detail=str(ex)), message)
     finally:
         if question is not None:
             await question.delete()
