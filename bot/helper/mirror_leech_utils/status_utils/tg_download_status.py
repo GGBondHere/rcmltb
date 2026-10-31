@@ -39,8 +39,13 @@ class TelegramStatus:
 
     def eta(self):
         try:
-            seconds = (self.__size - self.__obj.processed_bytes) / self.__obj.speed
-            return get_readable_time(seconds)
+            remaining = max(0, self.__size - self.__obj.downloaded_bytes)
+            if remaining == 0:
+                return get_readable_time(0)
+            speed = self.speed_raw()
+            if speed <= 0:
+                return "-"
+            return get_readable_time(remaining / speed)
         except Exception:
             return "-"
 
