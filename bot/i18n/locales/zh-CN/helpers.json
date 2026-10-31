@@ -82,6 +82,7 @@
   "helpers.task.leech_initiator": "\n<b>发起者：</b>{value1}\n\n",
   "helpers.text.type": "\n\n<b>类型：</b>{value1}",
   "helpers.task.mirror_initiator": "\n\n<b>发起者：</b>{value1}",
+  "helpers.task.saved_to": "\n\n<b>保存位置：</b><code>{path}</code>",
   "helpers.task.local_size": "<b>大小：</b>{value1}\n",
   "helpers.task.local_initiator": "<b>发起者：</b>{value1}\n\n",
   "helpers.text.corrupted_files": "\n<b>损坏文件数：</b>{value1}",

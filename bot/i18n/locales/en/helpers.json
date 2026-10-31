@@ -82,6 +82,7 @@
   "helpers.task.leech_initiator": "\n<b>cc: </b>{value1}\n\n",
   "helpers.text.type": "\n\n<b>Type: </b>{value1}",
   "helpers.task.mirror_initiator": "\n\n<b>cc: </b>{value1}",
+  "helpers.task.saved_to": "\n\n<b>Saved to: </b><code>{path}</code>",
   "helpers.task.local_size": "<b>Size: </b>{value1}\n",
   "helpers.task.local_initiator": "<b>cc: </b>{value1}\n\n",
   "helpers.text.corrupted_files": "\n<b>Corrupted Files: </b>{value1}",

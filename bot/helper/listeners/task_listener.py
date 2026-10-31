@@ -413,6 +413,25 @@ class TaskListener(TaskConfig):
                 rcm = RcloneMirror(path, up_name, size, self.user_id, self)
                 await rcm.mirror()
 
+    async def _send_rclone_completion(self, msg, rclone_path, reply_markup):
+        if not rclone_path:
+            await sendMessage(msg, self.message, reply_markup)
+            return
+
+        saved_dir = f"{rclone_path.rstrip('/')}/"
+        location = tr("helpers.task.saved_to", path=saved_dir)
+        if len((msg + location).encode("utf-16-le")) <= 7800:
+            await sendMessage(msg + location, self.message, reply_markup)
+            return
+
+        # Keep the complete path without making the success message too long.
+        await sendMessage(msg, self.message, reply_markup)
+        for offset in range(0, len(saved_dir), 500):
+            await sendMessage(
+                tr("helpers.task.saved_to", path=saved_dir[offset:offset + 500]),
+                self.message,
+            )
+
     @task_locale
     async def onRcloneCopyComplete(self, rc_config, rclone_path, folder_name, is_gdrive):
         async with status_dict_lock:
@@ -467,7 +486,7 @@ class TaskListener(TaskConfig):
                 LOGGER.error(f"Error while getting link. Error: {err}")
                 button.url_buildbutton(tr('helpers.text.cloud_link', _html=False), "http://www.example.com")
 
-        await sendMarkup(msg, self.message, reply_markup=button.build_menu(1))
+        await self._send_rclone_completion(msg, rclone_path, button.build_menu(1))
 
         await clean_download(self.dir)
         if count == 0:
@@ -599,7 +618,7 @@ class TaskListener(TaskConfig):
                 buttons.url_buildbutton(tr('helpers.text.rclone_link', _html=False), share_url)
 
             msg += tr('helpers.task.mirror_initiator', value1=raw(self.tag))
-            await sendMessage(msg, self.message, buttons.build_menu(1))
+            await self._send_rclone_completion(msg, rclone_path, buttons.build_menu(1))
 
             if self.seed:
                 if getattr(self, "multi_remote_upload", False):
